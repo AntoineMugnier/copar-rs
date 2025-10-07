@@ -34,7 +34,7 @@ pub enum MemberType {
     ArrayOfF32,
     ArrayOfF64,
     Bool,
-    Identifier,
+    Identifier(String),
 }
 
 #[derive(Debug, PartialEq)]
@@ -68,13 +68,32 @@ pub enum UniRecordArgVariant {
     ArrayOfF32(UniRecordArg<Vec<f32>>),
     ArrayOfF64(UniRecordArg<Vec<f64>>),
     Bool(UniRecordArg<bool>),
-    Identifier(UniRecordArg<String>),
+    Identifier(IdentifierRecordArg),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct IdentifierRecordArg{
+    pub(crate) name: String,
+    pub(crate) enum_type: String,
+    pub(crate) value: String,
+}
+
+impl IdentifierRecordArg{
+
+    pub fn dissassemble(self) ->(String, String,  String){
+        (self.name, self.enum_type, self.value)
+    }
 }
 
 #[derive(Debug, PartialEq)]
 pub struct UniRecordArg<T> {
-    name: String,
-    value: T,
+    pub(crate) name: String,
+    pub(crate) value: T,
+}
+impl <T> UniRecordArg<T>{
+    pub fn dissassemble(self) ->(String, T){
+        (self.name, self.value)
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -108,6 +127,7 @@ pub enum RecordParsingError {
     BadF32ArrayFieldSyntax(ParseFloatError, usize),
     BadF64ArrayFieldSyntax(ParseFloatError, usize),
     BadBoolFormat(),
+    BadIdFormat(),
 }
 
 impl Display for RecordParsingError {
@@ -165,7 +185,7 @@ impl UniRecordArgVariant {
             UniRecordArgVariant::ArrayOfI64(_) => MemberType::ArrayOfI64,
             UniRecordArgVariant::ArrayOfF32(_) => MemberType::ArrayOfF32,
             UniRecordArgVariant::ArrayOfF64(_) => MemberType::ArrayOfF64,
-            UniRecordArgVariant::Identifier(_) => MemberType::Identifier,
+            UniRecordArgVariant::Identifier(arg) => MemberType::Identifier(arg.enum_type.clone()),
             UniRecordArgVariant::Bool(_) => MemberType::Bool,
         } 
     }
@@ -420,9 +440,15 @@ impl UniRecordArgVariant {
             let value = value_field[0];
             match arg_type {
                 "id" => {
-                    return Ok(UniRecordArgVariant::Identifier(UniRecordArg {
+                    let tokens: Vec<&str> = value.split("::").collect();
+                    if tokens.len() != 2{
+                        return Err(RecordParsingError::BadIdFormat()); 
+                    }
+                     
+                    return Ok(UniRecordArgVariant::Identifier(IdentifierRecordArg {
                         name: record_arg_name,
-                        value: String::from(value),
+                        enum_type: tokens[0].to_string(),
+                        value: tokens[1].to_string(),
                     }));
                 }
                 "x8" => {
@@ -587,13 +613,17 @@ impl UniRecord {
     pub fn args(&self) -> &Vec<UniRecordArgVariant>{
         return &self.args;
     }
+
+    pub fn dissassemble(self) ->(String, Vec<UniRecordArgVariant>){
+        (self.name, self.args)
+    }
 }
 
 mod test {
     use super::*;
 
     #[test]
-    fn name() {
+    fn record_arg_parsing_test() {
         assert_eq!(
             UniRecordArgVariant::from("test_val:", "x8(0x25)"),
             Ok(UniRecordArgVariant::X8(UniRecordArg {
@@ -756,9 +786,10 @@ mod test {
             }))
         );
         assert_eq!(
-            UniRecordArgVariant::from("test_val:", "id(Hello)"),
-            Ok(UniRecordArgVariant::Identifier(UniRecordArg {
+            UniRecordArgVariant::from("test_val:", "id(EnumType::Hello)"),
+            Ok(UniRecordArgVariant::Identifier(IdentifierRecordArg {
                 name: String::from("test_val"),
+                enum_type: String::from("EnumType"),
                 value: String::from("Hello")
             }))
         );

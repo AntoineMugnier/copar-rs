@@ -4,9 +4,9 @@ use std::fs::{read_to_string, File};
 use std::io::Read;
 use std::str::Lines;
 mod model;
+mod c_generation;
 mod unirecord;
 use model::Model;
-
 use unirecord::{UniRecord, UniRecordArg, UniRecordArgVariant};
 enum RecordCapturingState {
     OneShot,
@@ -16,17 +16,21 @@ enum RecordCapturingState {
 
 struct Converter {
     sequence_name: String,
-    output_file: File,
+    input_file_buffer:Option<String>,
     model: Model,
     capturing_state: RecordCapturingState,
     line_buffer: String,
 }
 
 impl Converter {
-    pub fn new(output_file: File) -> Converter {
+    pub fn new(mut input_file: File) -> Converter {
+
+        let mut input_file_buffer = String::new();
+        input_file.read_to_string(&mut input_file_buffer).unwrap();
+
         Converter {
             sequence_name: String::new(),
-            output_file,
+            input_file_buffer: Some(input_file_buffer),
             model: Model::new(),
             capturing_state: RecordCapturingState::OneShot,
             line_buffer: String::new(),
@@ -46,7 +50,7 @@ impl Converter {
         for args in line.split(' ').collect::<Vec<&str>>().windows(2).step_by(2) {
             let arg_name = args[0];
             let arg_val = args[1];
-            println!("{arg_name} {arg_val}");
+            println!("{} + {}", arg_name, arg_val);
             let uni_record_arg = UniRecordArgVariant::from(arg_name, arg_val).unwrap();
             uni_record_args.push(uni_record_arg);
         }
@@ -89,11 +93,15 @@ impl Converter {
 
     fn multiline_capture_state(&mut self, line: &str) {
         let tokens: Vec<&str> = line.split(" =#").collect();
-
-        self.line_buffer += " ";
+       
+        // Add space if last line was uncut
+        if self.line_buffer.chars().last().unwrap() == ')'{
+            self.line_buffer += " ";
+        }
         self.line_buffer += tokens[0];
 
         if tokens.len() == 2 {
+            println!("{}", self.line_buffer);
             self.handle_single_line_record();
             self.capturing_state = RecordCapturingState::OneShot;
         }
@@ -116,42 +124,44 @@ impl Converter {
             self.capturing_state = RecordCapturingState::OneShot;
         }
     }
-    fn is_end_line(&mut self, line: &str) -> bool {
+    fn is_end_line( line: &str, sequence_name: &String) -> bool {
         let tokens: Vec<&str> = line.split(" :#").collect();
 
         assert!(tokens.len() <= 2);
 
         if tokens.len() == 2 {
             let sequence_name = tokens[0];
-            assert_eq!(sequence_name, self.sequence_name);
+            assert_eq!(sequence_name, sequence_name);
             return true;
         }
 
         return false;
     }
 
-    fn move_to_begin_token(&mut self, lines: &mut Lines) {
+    fn move_to_begin_token(lines: &mut Lines) -> String {
         for mut line in lines {
             Self::remove_timestamp(&mut line);
             if line.len() > 0 {
                 let tokens: Vec<&str> = line.split("#: ").collect();
                 if tokens.len() == 2 {
-                    self.sequence_name = tokens[1].to_string();
-                    return;
+                    return tokens[1].to_string();
                 }
             }
         }
+        panic!("File with log parsing start token");
     }
 
-    fn parse_lines(&mut self, input_file_buffer: String) {
+    fn parse_file(mut self) -> Model {
+        let input_file_buffer = self.input_file_buffer.take().unwrap();
         let mut lines_it = input_file_buffer.lines();
 
-        self.move_to_begin_token(&mut lines_it);
-
+        self.sequence_name = Self::move_to_begin_token(&mut lines_it);
+        
         for mut line in lines_it {
             Self::remove_timestamp(&mut line);
-            if self.is_end_line(&line) {
-                return;
+            if Self::is_end_line(&line, &self.sequence_name) {
+                self.model.set_sequence_name(self.sequence_name);
+                return self.model;
             }
 
             if line.len() > 0 {
@@ -162,15 +172,11 @@ impl Converter {
                 }
             }
         }
+        panic!("End of file before end token");
     }
 
-    pub fn handle_file(&mut self, mut input_file: File) {
-        let mut input_file_buffer = String::new();
-        input_file.read_to_string(&mut input_file_buffer).unwrap();
-        self.parse_lines(input_file_buffer);
-        self.model.compute(&mut self.output_file, self.sequence_name.clone());
-    }
 }
+
 fn main() {
     let mut args = env::args();
     let _path = args.next();
@@ -180,8 +186,8 @@ fn main() {
     let output_file_path = args.next().unwrap();
     let output_file = File::create(output_file_path).unwrap();
 
-    let mut converter = Converter::new(output_file);
-    converter.handle_file(input_file);
+    let mut converter = Converter::new(input_file);
+    let model = converter.parse_file();
 }
 
 #[cfg(test)]
@@ -194,19 +200,25 @@ mod test {
         let test_file_content = "
 the begining\n\
 [   62.996337] #: test_sequence
-[   62.996339] #= CMD52 write: bool(true) fn: u8(1) add: x32(0x01043) data: x8(0x80) =#
-[   64.049750] #= CMD53 write: bool(true) fn: u8(1) add: x32(0x01043) inc: bool(true)
+[   62.996339] #= Cmd52 write: bool(true) fn: u8(1) add: x32(0x01043) data: x8(0x80) =#
+[   64.049750] #= Cmd53 write: bool(true) fn: u8(1) add: x32(0x01043) inc: bool(true)
 [   64.054214] data: x8([0x80,0x05]) =#
+[   62.996339] #= Cmd52 write: bool(true) fn: u8(1) add: x32(0x01043) data: x8(0x80) =#
 Just trash
-[   62.996339] #= CMD52 write: bool(true) fn: u8(1) add: x32(0x01043) data: x8(0x80) =#
-[   58.432667] #[ READ_EFUSE
-[   58.437030] #- offset: x16(0x5ea) efuse_start: x8(0x0) size: u8(1) read_efuse_cnt: u32(10000) efuse_ctrl: x8(0x30) dv_sel: id(DDV)\n
+[   64.049750] #= Cmd53 write: bool(false) fn: u8(0) add: x32(0x01043) inc: bool(true)
+[   64.054214] data: x8([0x80,0x05,
+[   64.054214] 0x20,0xfe,0xc4,
+[   64.054214] 0x31,0x4,0x60,0xce]) =#
+[   58.432667] #[ Read_Efuse
+[   58.437030] #- offset: x16(0x5ea) efuse_start: x8(0x0) size: u8(1) read_efuse_cnt: u32(10000) efuse_ctrl: x8(0x30) dv_sel: id(EfuseAccess::DDV)\n
+[   62.996339] #= Cmd52 write: bool(true) fn: u8(1) add: x32(0x01043) data: x8(0x80) =#
 [   58.439921] #- map_ptr: x64(00000000da5708c1)
 [   64.592339] I am not a record
 Me neither
-[   64.921023] READ_EFUSE #]
+[   64.921023] Read_Efuse #]
+[   62.996339] #= Another_Cmd num: f32(3.565) adv: id(EfuseAccess::DAV) top: i32(-2500) adu: id(EfuseAccess::DXV) dot: i8([-25,-69,2]) =#
 [   64.921023] test_sequence :#
-[   62.996339] #= CMD52 write: bool(true) fn: u8(1) add: x32(0x01043) data: x8(0x80) =#\n";
+[   62.996339] #= Unexisting_Cmd write: bool(true) fn: u8(1) add: x32(0x01043) data: x8(0x80) =#\n";
 
         let test_files_dir = "/tmp".to_string();
         let test_input_file_path = test_files_dir.clone() + "/test_input_file";
@@ -219,10 +231,15 @@ Me neither
 
         let test_input_file = File::open(test_input_file_path.clone()).unwrap();
 
-        let test_output_file_path = test_files_dir.clone() + "/test_output_file";
-        let test_output_file = File::create(test_output_file_path).unwrap();
+        let test_output_source_file_path = test_files_dir.clone() + "/test_output_file.c";
+        let mut test_output_source_file = File::create(test_output_source_file_path).unwrap();
 
-        let mut converter = Converter::new(test_output_file);
-        converter.handle_file(test_input_file);
+        let test_output_header_file_path = test_files_dir.clone() + "/test_output_file.h";
+        let mut test_output_header_file = File::create(test_output_header_file_path).unwrap();
+
+        let converter = Converter::new(test_input_file);
+        let mut model = converter.parse_file();
+         model.compute_to_c(&mut test_output_source_file, &mut test_output_header_file);
+
     }
 }
