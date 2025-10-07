@@ -1,8 +1,7 @@
+use crate::model::Model;
 use std::fs::File;
 use std::io::Read;
 use std::str::Lines;
-use crate::model::Model;
-
 
 use crate::unirecord::{UniRecord, UniRecordArgVariant};
 enum RecordCapturingState {
@@ -11,21 +10,20 @@ enum RecordCapturingState {
     Ranged,
 }
 
-pub struct Converter {
+pub struct Parser {
     sequence_name: String,
-    input_file_buffer:Option<String>,
+    input_file_buffer: Option<String>,
     model: Model,
     capturing_state: RecordCapturingState,
     line_buffer: String,
 }
 
-impl Converter {
-    pub fn new(mut input_file: File) -> Converter {
-
+impl Parser {
+    pub fn new(mut input_file: File) -> Parser {
         let mut input_file_buffer = String::new();
         input_file.read_to_string(&mut input_file_buffer).unwrap();
 
-        Converter {
+        Parser {
             sequence_name: String::new(),
             input_file_buffer: Some(input_file_buffer),
             model: Model::new(),
@@ -42,7 +40,7 @@ impl Converter {
         }
     }
 
-    fn parse_one_shot_record_args(line: &str) -> Vec<UniRecordArgVariant> {
+    fn parse_record_args(line: &str) -> Vec<UniRecordArgVariant> {
         let mut uni_record_args = Vec::new();
         for args in line.split(' ').collect::<Vec<&str>>().windows(2).step_by(2) {
             let arg_name = args[0];
@@ -53,11 +51,11 @@ impl Converter {
         uni_record_args
     }
 
-    fn handle_single_line_record(&mut self) {
+    fn parse_line_buffer(&mut self) {
         let record_str_vec: Vec<&str> = self.line_buffer.splitn(2, ' ').collect();
 
         let name = String::from(record_str_vec[0]);
-        let args = Self::parse_one_shot_record_args(record_str_vec[1]);
+        let args = Self::parse_record_args(record_str_vec[1]);
         let uni_record = UniRecord::new(name, args);
 
         self.model.add_record(uni_record);
@@ -71,7 +69,7 @@ impl Converter {
                 self.line_buffer = sub_tokens[0].to_string();
                 assert!(sub_tokens.len() <= 2);
                 if sub_tokens.len() == 2 {
-                    self.handle_single_line_record();
+                    self.parse_line_buffer();
                 } else {
                     self.capturing_state = RecordCapturingState::Multiline;
                 }
@@ -89,15 +87,15 @@ impl Converter {
 
     fn multiline_capture_state(&mut self, line: &str) {
         let tokens: Vec<&str> = line.split(" =#").collect();
-       
+
         // Add space if last line was uncut
-        if self.line_buffer.chars().last().unwrap() == ')'{
+        if self.line_buffer.chars().last().unwrap() == ')' {
             self.line_buffer += " ";
         }
         self.line_buffer += tokens[0];
 
         if tokens.len() == 2 {
-            self.handle_single_line_record();
+            self.parse_line_buffer();
             self.capturing_state = RecordCapturingState::OneShot;
         }
     }
@@ -115,11 +113,11 @@ impl Converter {
             let record_name = tokens[0];
             let previous_record_name = self.line_buffer.split(" ").next().unwrap();
             assert_eq!(record_name, previous_record_name);
-            self.handle_single_line_record();
+            self.parse_line_buffer();
             self.capturing_state = RecordCapturingState::OneShot;
         }
     }
-    fn is_end_line( line: &str, sequence_name: &String) -> bool {
+    fn is_end_line(line: &str, sequence_name: &String) -> bool {
         let tokens: Vec<&str> = line.split(" :#").collect();
 
         assert!(tokens.len() <= 2);
@@ -151,7 +149,7 @@ impl Converter {
         let mut lines_it = input_file_buffer.lines();
 
         self.sequence_name = Self::move_to_begin_token(&mut lines_it);
-        
+
         for mut line in lines_it {
             Self::remove_timestamp(&mut line);
             if Self::is_end_line(&line, &self.sequence_name) {
@@ -169,5 +167,4 @@ impl Converter {
         }
         panic!("End of file before end token");
     }
-
 }

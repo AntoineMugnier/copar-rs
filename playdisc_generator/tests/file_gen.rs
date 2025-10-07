@@ -1,5 +1,5 @@
 mod test_files;
-use playdisc_generator::Converter;
+use playdisc_generator::Parser;
 
 use std::{
     fs::File,
@@ -24,7 +24,7 @@ fn test_gen() {
     let test_output_header_file_path = test_files_dir.clone() + "/test_output_file.h";
     let mut test_output_header_file = File::create(test_output_header_file_path.as_str()).unwrap();
 
-    let converter = Converter::new(test_input_file);
+    let converter = Parser::new(test_input_file);
     let mut model = converter.parse_file();
     model.compute_to_c(&mut test_output_source_file, &mut test_output_header_file);
 
