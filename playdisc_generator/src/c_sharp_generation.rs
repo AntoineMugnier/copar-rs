@@ -155,7 +155,7 @@ impl private::Sealed for Model {
                     Self::member_type_to_cs_type_string(&struct_member.member_type);
                 write!(
                     output_file,
-                    "        public {} {};\n",
+                    "        public {} {} {{ get; set; }}\n",
                     member_cs_type, member_name
                 )
                 .unwrap();
