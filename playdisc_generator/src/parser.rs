@@ -184,7 +184,7 @@ impl Parser {
             )));
         }
 
-        let tokens: Vec<&str> = line.split(" #]").collect();
+        let tokens: Vec<&str> = line.split(" ]#").collect();
         if tokens.len() == 2 {
             let record_name = tokens[0];
             let previous_record_name = self.line_buffer.split(" ").next().unwrap();

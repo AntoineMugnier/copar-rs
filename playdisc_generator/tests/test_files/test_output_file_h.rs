@@ -41,7 +41,7 @@ typedef struct{
    const uint8_t efuse_ctrl;
    const enum EfuseAccess dv_sel;
    const uint64_t map_ptr;
-}Read_Efuse;
+}ReadEfuse;
 
 typedef struct{
    const float num;
@@ -49,13 +49,13 @@ typedef struct{
    const int32_t top;
    const enum EfuseAccess adu;
    const int8_t* const dot;
-}Another_Cmd;
+}AnotherCmd;
 
 union OperationVariant{
    const Cmd52* const cmd52;
    const Cmd53* const cmd53;
-   const Read_Efuse* const read_efuse;
-   const Another_Cmd* const another_cmd;
+   const ReadEfuse* const read_efuse;
+   const AnotherCmd* const another_cmd;
 };
 
 typedef struct{

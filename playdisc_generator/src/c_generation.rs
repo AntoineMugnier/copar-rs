@@ -274,10 +274,27 @@ impl Model {
         write!(output_file, "\n").unwrap();
     }
 
+    fn pascal_to_snake_case(input: &str) -> String {
+        let mut result = String::new();
+        
+        for (i, c) in input.chars().enumerate() {
+            if c.is_uppercase() {
+                if i != 0 {
+                    result.push('_');
+                }
+                result.push(c.to_ascii_lowercase());
+            } else {
+                result.push(c);
+            }
+        }
+
+        result
+    }
+
     fn generate_operation_variants_definition(&mut self, output_file: &mut File) {
         write!(output_file, "union OperationVariant{{\n").unwrap();
         for (struct_name, _) in self.defined_records.iter() {
-            let struct_member_variant = struct_name.to_lowercase();
+            let struct_member_variant = Self::pascal_to_snake_case(struct_name);
             write!(
                 output_file,
                 "   const {struct_name}* const {struct_member_variant};\n"
@@ -335,7 +352,7 @@ impl Model {
             );
             let operation_variant_instance_ref =
                 operation_table_member.operation_variant_ref_name.as_str();
-            let operation_variant_name = operation_table_member.operation_type.to_lowercase();
+            let operation_variant_name = Self::pascal_to_snake_case(&operation_table_member.operation_type);
             write!(output_file, "   {{.id = {operation_id}, .variant={{.{operation_variant_name}=&{operation_variant_instance_ref}}}}}",).unwrap();
             if index < nb_operations - 1 {
                 write!(output_file, ",\n").unwrap();
