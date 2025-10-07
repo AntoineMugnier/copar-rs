@@ -238,14 +238,32 @@ impl Model {
         write!(output_file, "#endif\n").unwrap();
     }
 
+    fn pascal_to_macro_case(input: &str) -> String {
+        let mut result = String::new();
+        
+        for (i, c) in input.chars().enumerate() {
+            if c.is_uppercase() {
+                if i != 0 {
+                    result.push('_');
+                }
+                result.push(c.to_ascii_uppercase());
+            } else {
+                result.push(c.to_ascii_uppercase());
+            }
+        }
+
+        result
+    }
+
     fn generate_operation_id_enum(&mut self, output_file: &mut File) {
         write!(output_file, "enum OperationId{{\n").unwrap();
 
         for (record_name, _record_members) in self.defined_records.iter() {
-            write!(
+            let record_name = Self::pascal_to_macro_case(record_name);
+                write!(
                 output_file,
                 "   OPERATION_ID_{},\n",
-                record_name.to_uppercase()
+                record_name
             )
             .unwrap();
         }
@@ -310,9 +328,10 @@ impl Model {
 
         let nb_operations = self.operation_ref_table.len();
         for (index, operation_table_member) in self.operation_ref_table.iter().enumerate() {
+            let record_name = Self::pascal_to_macro_case(&operation_table_member.operation_type);
             let operation_id = format!(
                 "OPERATION_ID_{}",
-                operation_table_member.operation_type.to_uppercase()
+                record_name
             );
             let operation_variant_instance_ref =
                 operation_table_member.operation_variant_ref_name.as_str();
