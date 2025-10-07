@@ -1,10 +1,41 @@
-use core::error;
 use std::{
     fmt::Display,
     num::{ParseFloatError, ParseIntError},
 };
 
-pub enum ArgType {}
+#[derive(Debug, PartialEq)]
+pub enum MemberType {
+    X8,
+    X16,
+    X32,
+    X64,
+    U8,
+    U16,
+    U32,
+    U64,
+    I8,
+    I16,
+    I32,
+    I64,
+    F32,
+    F64,
+    ArrayOfX8,
+    ArrayOfX16,
+    ArrayOfX32,
+    ArrayOfX64,
+    ArrayOfU8,
+    ArrayOfU16,
+    ArrayOfU32,
+    ArrayOfU64,
+    ArrayOfI8,
+    ArrayOfI16,
+    ArrayOfI32,
+    ArrayOfI64,
+    ArrayOfF32,
+    ArrayOfF64,
+    Bool,
+    Identifier,
+}
 
 #[derive(Debug, PartialEq)]
 pub enum UniRecordArgVariant {
@@ -104,6 +135,76 @@ impl Display for RecordParsingError {
     }
 }
 impl UniRecordArgVariant {
+    pub fn get_type(&self) -> MemberType{
+        match self{
+            UniRecordArgVariant::X8(_) => MemberType::X8,
+            UniRecordArgVariant::X16(_) => MemberType::X16,
+            UniRecordArgVariant::X32(_) => MemberType::X32,
+            UniRecordArgVariant::X64(_) => MemberType::X64,
+            UniRecordArgVariant::U8(_) => MemberType::U8,
+            UniRecordArgVariant::U16(_) => MemberType::U16,
+            UniRecordArgVariant::U32(_) => MemberType::U32,
+            UniRecordArgVariant::U64(_) => MemberType::U64,
+            UniRecordArgVariant::I8(_) => MemberType::I8,
+            UniRecordArgVariant::I16(_) => MemberType::I16,
+            UniRecordArgVariant::I32(_) => MemberType::I32,
+            UniRecordArgVariant::I64(_) => MemberType::I64,
+            UniRecordArgVariant::F32(_) => MemberType::F32,
+            UniRecordArgVariant::F64(_) => MemberType::F64,
+            UniRecordArgVariant::ArrayOfX8(_) => MemberType::ArrayOfX8,
+            UniRecordArgVariant::ArrayOfX16(_) => MemberType::ArrayOfX16,
+            UniRecordArgVariant::ArrayOfX32(_) => MemberType::ArrayOfX32,
+            UniRecordArgVariant::ArrayOfX64(_) => MemberType::ArrayOfX64,
+            UniRecordArgVariant::ArrayOfU8(_) => MemberType::ArrayOfU8,
+            UniRecordArgVariant::ArrayOfU16(_) => MemberType::ArrayOfU16,
+            UniRecordArgVariant::ArrayOfU32(_) => MemberType::ArrayOfU32,
+            UniRecordArgVariant::ArrayOfU64(_) => MemberType::ArrayOfU64,
+            UniRecordArgVariant::ArrayOfI8(_) => MemberType::ArrayOfI8,
+            UniRecordArgVariant::ArrayOfI16(_) => MemberType::ArrayOfI16,
+            UniRecordArgVariant::ArrayOfI32(_) => MemberType::ArrayOfI32,
+            UniRecordArgVariant::ArrayOfI64(_) => MemberType::ArrayOfI64,
+            UniRecordArgVariant::ArrayOfF32(_) => MemberType::ArrayOfF32,
+            UniRecordArgVariant::ArrayOfF64(_) => MemberType::ArrayOfF64,
+            UniRecordArgVariant::Identifier(_) => MemberType::Identifier,
+            UniRecordArgVariant::Bool(_) => MemberType::Bool,
+        } 
+    }
+
+    pub fn get_name(&self) -> &String{
+        match self{
+            UniRecordArgVariant::X8(arg) => &arg.name,
+            UniRecordArgVariant::X16(arg) => &arg.name,
+            UniRecordArgVariant::X32(arg) => &arg.name,
+            UniRecordArgVariant::X64(arg) => &arg.name,
+            UniRecordArgVariant::U8(arg) => &arg.name,
+            UniRecordArgVariant::U16(arg) => &arg.name,
+            UniRecordArgVariant::U32(arg) => &arg.name,
+            UniRecordArgVariant::U64(arg) => &arg.name,
+            UniRecordArgVariant::I8(arg) => &arg.name,
+            UniRecordArgVariant::I16(arg) => &arg.name,
+            UniRecordArgVariant::I32(arg) => &arg.name,
+            UniRecordArgVariant::I64(arg) => &arg.name,
+            UniRecordArgVariant::F32(arg) => &arg.name,
+            UniRecordArgVariant::F64(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfX8(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfX16(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfX32(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfX64(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfU8(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfU16(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfU32(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfU64(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfI8(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfI16(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfI32(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfI64(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfF32(arg) => &arg.name,
+            UniRecordArgVariant::ArrayOfF64(arg) => &arg.name,
+            UniRecordArgVariant::Identifier(arg) => &arg.name,
+            UniRecordArgVariant::Bool(arg) => &arg.name,
+        } 
+    }
+
     pub fn from(
         record_arg_key: &str,
         record_arg_value: &str,
@@ -467,6 +568,7 @@ impl UniRecordArgVariant {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct UniRecord {
     name: String,
     args: Vec<UniRecordArgVariant>,
@@ -475,6 +577,15 @@ pub struct UniRecord {
 impl UniRecord {
     pub fn new(name: String, args: Vec<UniRecordArgVariant>) -> UniRecord {
         UniRecord { name, args }
+    }
+
+    pub fn name(&self) -> &String{
+        return &self.name;
+    }
+
+
+    pub fn args(&self) -> &Vec<UniRecordArgVariant>{
+        return &self.args;
     }
 }
 
