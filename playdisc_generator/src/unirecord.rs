@@ -619,6 +619,7 @@ impl UniRecord {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::*;
 

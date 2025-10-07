@@ -1,20 +1,17 @@
-use std::collections::HashMap;
-use std::{clone, env};
-use std::fs::{read_to_string, File};
+use std::fs::File;
 use std::io::Read;
 use std::str::Lines;
-mod model;
-mod c_generation;
-mod unirecord;
-use model::Model;
-use unirecord::{UniRecord, UniRecordArg, UniRecordArgVariant};
+use crate::model::Model;
+
+
+use crate::unirecord::{UniRecord, UniRecordArgVariant};
 enum RecordCapturingState {
     OneShot,
     Multiline,
     Ranged,
 }
 
-struct Converter {
+pub struct Converter {
     sequence_name: String,
     input_file_buffer:Option<String>,
     model: Model,
@@ -50,7 +47,6 @@ impl Converter {
         for args in line.split(' ').collect::<Vec<&str>>().windows(2).step_by(2) {
             let arg_name = args[0];
             let arg_val = args[1];
-            println!("{} + {}", arg_name, arg_val);
             let uni_record_arg = UniRecordArgVariant::from(arg_name, arg_val).unwrap();
             uni_record_args.push(uni_record_arg);
         }
@@ -101,7 +97,6 @@ impl Converter {
         self.line_buffer += tokens[0];
 
         if tokens.len() == 2 {
-            println!("{}", self.line_buffer);
             self.handle_single_line_record();
             self.capturing_state = RecordCapturingState::OneShot;
         }
@@ -130,8 +125,8 @@ impl Converter {
         assert!(tokens.len() <= 2);
 
         if tokens.len() == 2 {
-            let sequence_name = tokens[0];
-            assert_eq!(sequence_name, sequence_name);
+            let read_sequence_name = tokens[0];
+            assert_eq!(read_sequence_name, sequence_name);
             return true;
         }
 
@@ -151,7 +146,7 @@ impl Converter {
         panic!("File with log parsing start token");
     }
 
-    fn parse_file(mut self) -> Model {
+    pub fn parse_file(mut self) -> Model {
         let input_file_buffer = self.input_file_buffer.take().unwrap();
         let mut lines_it = input_file_buffer.lines();
 
@@ -175,71 +170,4 @@ impl Converter {
         panic!("End of file before end token");
     }
 
-}
-
-fn main() {
-    let mut args = env::args();
-    let _path = args.next();
-    let input_file_path = args.next().unwrap();
-    let input_file = File::open(input_file_path).unwrap();
-
-    let output_file_path = args.next().unwrap();
-    let output_file = File::create(output_file_path).unwrap();
-
-    let mut converter = Converter::new(input_file);
-    let model = converter.parse_file();
-}
-
-#[cfg(test)]
-mod test {
-    use crate::Converter;
-    use std::{fs::File, io::Write};
-
-    #[test]
-    fn test_gen() {
-        let test_file_content = "
-the begining\n\
-[   62.996337] #: test_sequence
-[   62.996339] #= Cmd52 write: bool(true) fn: u8(1) add: x32(0x01043) data: x8(0x80) =#
-[   64.049750] #= Cmd53 write: bool(true) fn: u8(1) add: x32(0x01043) inc: bool(true)
-[   64.054214] data: x8([0x80,0x05]) =#
-[   62.996339] #= Cmd52 write: bool(true) fn: u8(1) add: x32(0x01043) data: x8(0x80) =#
-Just trash
-[   64.049750] #= Cmd53 write: bool(false) fn: u8(0) add: x32(0x01043) inc: bool(true)
-[   64.054214] data: x8([0x80,0x05,
-[   64.054214] 0x20,0xfe,0xc4,
-[   64.054214] 0x31,0x4,0x60,0xce]) =#
-[   58.432667] #[ Read_Efuse
-[   58.437030] #- offset: x16(0x5ea) efuse_start: x8(0x0) size: u8(1) read_efuse_cnt: u32(10000) efuse_ctrl: x8(0x30) dv_sel: id(EfuseAccess::DDV)\n
-[   62.996339] #= Cmd52 write: bool(true) fn: u8(1) add: x32(0x01043) data: x8(0x80) =#
-[   58.439921] #- map_ptr: x64(00000000da5708c1)
-[   64.592339] I am not a record
-Me neither
-[   64.921023] Read_Efuse #]
-[   62.996339] #= Another_Cmd num: f32(3.565) adv: id(EfuseAccess::DAV) top: i32(-2500) adu: id(EfuseAccess::DXV) dot: i8([-25,-69,2]) =#
-[   64.921023] test_sequence :#
-[   62.996339] #= Unexisting_Cmd write: bool(true) fn: u8(1) add: x32(0x01043) data: x8(0x80) =#\n";
-
-        let test_files_dir = "/tmp".to_string();
-        let test_input_file_path = test_files_dir.clone() + "/test_input_file";
-
-        let mut test_input_file = File::create(test_input_file_path.clone()).unwrap();
-        test_input_file
-            .write_all(test_file_content.as_bytes())
-            .unwrap();
-        drop(test_input_file);
-
-        let test_input_file = File::open(test_input_file_path.clone()).unwrap();
-
-        let test_output_source_file_path = test_files_dir.clone() + "/test_output_file.c";
-        let mut test_output_source_file = File::create(test_output_source_file_path).unwrap();
-
-        let test_output_header_file_path = test_files_dir.clone() + "/test_output_file.h";
-        let mut test_output_header_file = File::create(test_output_header_file_path).unwrap();
-
-        let converter = Converter::new(test_input_file);
-        let mut model = converter.parse_file();
-         model.compute_to_c(&mut test_output_source_file, &mut test_output_header_file);
-
-    }
 }

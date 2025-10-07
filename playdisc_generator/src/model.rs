@@ -1,12 +1,9 @@
 use crate::unirecord::{
-    IdentifierRecordArg, MemberType, UniRecord, UniRecordArg, UniRecordArgVariant,
+    IdentifierRecordArg, MemberType, UniRecord, UniRecordArgVariant,
 };
-use core::panic;
-use std::borrow::Borrow;
-use std::collections::HashMap;
-use std::env::args;
-use std::fs::File;
 use std::hash::Hash;
+use indexmap::IndexMap;
+
 use ordered_float::OrderedFloat;
 type OrderedF32 = OrderedFloat<f32>;
 type OrderedF64 = OrderedFloat<f64>;
@@ -70,12 +67,6 @@ pub(crate) struct Operation {
     pub(crate) parameters: Vec<OperationParameterVariant>,
 }
 
-impl Operation {
-    fn new(operation_type: String, parameters: Vec<OperationParameterVariant>) -> Operation {
-        Operation {operation_type, parameters }
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub(crate) enum ArrayInstanceVariant {
     X8(Vec<u8>),
@@ -105,10 +96,10 @@ pub struct Model {
     pub(crate) sequence_name: Option<String>,
     pub(crate) array_instance_counter: usize,
     pub(crate) operation_instance_counter: usize,
-    pub(crate) defined_enums: HashMap<String, Vec<String>>,
-    pub(crate) defined_records: HashMap<String, Vec<StructureDefinitionMember>>,
-    pub(crate) instanciated_arrays: HashMap<ArrayInstanceVariant, String>,
-    pub(crate) operation_instances: HashMap<Operation, String>,
+    pub(crate) defined_enums: IndexMap<String, Vec<String>>,
+    pub(crate) defined_records: IndexMap<String, Vec<StructureDefinitionMember>>,
+    pub(crate) instanciated_arrays: IndexMap<ArrayInstanceVariant, String>,
+    pub(crate) operation_instances: IndexMap<Operation, String>,
     pub(crate) operation_ref_table: Vec<OperationTableMember>,
 }
 
@@ -118,10 +109,10 @@ impl Model {
             sequence_name: None,
             array_instance_counter: 0,
             operation_instance_counter: 0,
-            defined_enums: HashMap::new(),
-            defined_records: HashMap::new(),
-            instanciated_arrays: HashMap::new(),
-            operation_instances: HashMap::new(),
+            defined_enums: IndexMap::new(),
+            defined_records: IndexMap::new(),
+            instanciated_arrays: IndexMap::new(),
+            operation_instances: IndexMap::new(),
             operation_ref_table: Vec::new(),
         }
     }
@@ -179,8 +170,6 @@ impl Model {
     }
 
     pub fn add_record(&mut self, record: UniRecord) {
-        println!("{:?}", record);
-
         let (record_type, record_args) = record.dissassemble();
         self.add_structure_definition(record_type.clone(), &record_args);
 
@@ -479,23 +468,5 @@ impl Model {
         };
 
         self.operation_ref_table.push(operation_table_member);
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::unirecord::{UniRecord, UniRecordArg, UniRecordArgVariant};
-
-    use super::Model;
-
-    #[test]
-    fn model_test() {
-        let mut model = Model::new();
-        let record_arg_0 = UniRecordArgVariant::ArrayOfX8(UniRecordArg{name: String::from("record_arg_0"), value: vec![0x20, 0x8E, 0x3A]});
-        let mut record_args = Vec::new();
-        record_args.push(record_arg_0);
-        let record = UniRecord::new(String::from("test_rec"), record_args);
-         model.add_record(record);
-        println!("{:?}", model);
     }
 }
