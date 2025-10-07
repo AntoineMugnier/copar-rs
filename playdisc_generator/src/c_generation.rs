@@ -1,14 +1,221 @@
 use crate::{
+    code_generation_commons::{generate_blank_line, pascal_to_macro_case, pascal_to_snake_case},
     model::{ArrayInstanceVariant, OperationParameterVariant},
     unirecord::MemberType,
     Model,
 };
 use std::{fs::File, io::Write};
 
-impl ToString for MemberType {
-    fn to_string(&self) -> String {
+mod private {
+    use super::*;
+    use crate::unirecord::MemberType;
+
+    pub(crate) trait Sealed {
+        fn generate_c_header(&mut self, output_file: &mut File);
+        fn generate_header_pre(&mut self, output_file: &mut File);
+        fn generate_header_post(&mut self, output_file: &mut File);
+        fn generate_operation_id_enum(&mut self, output_file: &mut File);
+        fn generate_operation_variants_definition(&mut self, output_file: &mut File);
+        fn generate_operation_definition(&mut self, output_file: &mut File);
+        fn generate_enum_definitions(&mut self, output_file: &mut File);
+        fn generate_struct_definitions(&mut self, output_file: &mut File);
+        fn generate_operation_list(&mut self, output_file: &mut File);
+        fn generate_array_instances(&mut self, output_file: &mut File);
+        fn generate_operation_instances(&mut self, output_file: &mut File);
+        fn generate_source_pre(&mut self, output_file: &mut File);
+        fn generate_source_post(&mut self, output_file: &mut File);
+        fn generate_c_source(&mut self, output_file: &mut File);
+        fn member_type_to_c_type_string(member_type: &MemberType) -> String;
+        fn fmt_c_array_value<T, F: Fn(&T) -> String>(array: &Vec<T>, format_function: F) -> String;
+        fn fmt_array_instance(
+            array_instance_variant: &ArrayInstanceVariant,
+            array_name: &str,
+        ) -> String;
+        fn fmt_struct_member(operation_parameter_variant: &OperationParameterVariant) -> String;
+    }
+}
+
+use crate::c_generation::private::Sealed;
+
+pub trait CGeneration: private::Sealed {
+    fn compute_to_c(&mut self, output_c_file: &mut File, output_h_file: &mut File);
+}
+
+impl CGeneration for Model {
+    fn compute_to_c(&mut self, output_c_file: &mut File, output_h_file: &mut File) {
+        self.generate_c_header(output_h_file);
+        self.generate_c_source(output_c_file);
+    }
+}
+
+impl private::Sealed for Model {
+    fn generate_header_pre(&mut self, output_file: &mut File) {
+        let sequence_name = self.sequence_name.as_mut().unwrap().to_uppercase();
+        let sequence_name = sequence_name.as_str();
+        write!(output_file, "#ifndef _{sequence_name}_H\n#define _{sequence_name}_H\n#include <stdint.h>\n#include <stdbool.h>\n").unwrap();
+    }
+
+    fn generate_header_post(&mut self, output_file: &mut File) {
+        write!(output_file, "#endif\n").unwrap();
+    }
+
+    fn generate_operation_id_enum(&mut self, output_file: &mut File) {
+        write!(output_file, "enum OperationId{{\n").unwrap();
+
+        for (record_name, _record_members) in self.defined_records.iter() {
+            let record_name = pascal_to_macro_case(record_name);
+            write!(output_file, "   OPERATION_ID_{},\n", record_name).unwrap();
+        }
+        write!(output_file, "}};\n").unwrap();
+    }
+
+    fn generate_operation_variants_definition(&mut self, output_file: &mut File) {
+        write!(output_file, "union OperationVariant{{\n").unwrap();
+        for (struct_name, _) in self.defined_records.iter() {
+            let struct_member_variant = pascal_to_snake_case(struct_name);
+            write!(
+                output_file,
+                "   const {struct_name}* const {struct_member_variant};\n"
+            )
+            .unwrap();
+        }
+        write!(output_file, "}};\n").unwrap();
+    }
+
+    fn generate_operation_definition(&mut self, output_file: &mut File) {
+        write!(output_file, "typedef struct{{\n   const enum OperationId id;\n   const union OperationVariant variant;\n}}Operation;\n").unwrap();
+    }
+
+    fn generate_enum_definitions(&mut self, output_file: &mut File) {
+        for (enum_type_name, enum_members) in self.defined_enums.iter() {
+            write!(output_file, "enum {enum_type_name}{{\n").unwrap();
+            for enum_member in enum_members.iter() {
+                write!(output_file, "   {enum_type_name}{enum_member},\n").unwrap();
+            }
+            write!(output_file, "}};\n").unwrap();
+        }
+    }
+
+    fn generate_struct_definitions(&mut self, output_file: &mut File) {
+        for (struct_name, struct_members) in self.defined_records.iter() {
+            write!(output_file, "typedef struct{{\n").unwrap();
+            for struct_member in struct_members {
+                let struct_member_name = struct_member.member_name.as_str();
+                let struct_member_type =
+                    Self::member_type_to_c_type_string(&struct_member.member_type);
+                write!(
+                    output_file,
+                    "   {struct_member_type} {struct_member_name};\n"
+                )
+                .unwrap();
+            }
+            write!(output_file, "}}{struct_name};\n",).unwrap();
+            generate_blank_line(output_file);
+        }
+    }
+
+    fn generate_operation_list(&mut self, output_file: &mut File) {
+        write!(
+            output_file,
+            "const Operation {}_operations[] = {{\n",
+            self.sequence_name.as_ref().unwrap()
+        )
+        .unwrap();
+
+        let nb_operations = self.operation_ref_table.len();
+        for (index, operation_table_member) in self.operation_ref_table.iter().enumerate() {
+            let record_name = pascal_to_macro_case(&operation_table_member.operation_type);
+            let operation_id = format!("OPERATION_ID_{}", record_name);
+            let operation_variant_instance_ref =
+                operation_table_member.operation_variant_ref_name.as_str();
+            let operation_variant_name =
+                pascal_to_snake_case(&operation_table_member.operation_type);
+            write!(output_file, "   {{.id = {operation_id}, .variant={{.{operation_variant_name}=&{operation_variant_instance_ref}}}}}",).unwrap();
+            if index < nb_operations - 1 {
+                write!(output_file, ",\n").unwrap();
+            }
+        }
+
+        write!(output_file, "\n}};\n",).unwrap();
+        generate_blank_line(output_file);
+    }
+
+    fn generate_array_instances(&mut self, output_file: &mut File) {
+        for (operation, operation_instance_name) in self.instanciated_arrays.iter() {
+            write!(
+                output_file,
+                "{}\n",
+                Self::fmt_array_instance(&operation, operation_instance_name),
+            )
+            .unwrap();
+        }
+        generate_blank_line(output_file);
+    }
+
+    fn generate_operation_instances(&mut self, output_file: &mut File) {
+        for (operation, operation_instance_name) in self.operation_instances.iter() {
+            let operation_type = operation.operation_type.as_str();
+            write!(
+                output_file,
+                "const {operation_type} {operation_instance_name} = {{"
+            )
+            .unwrap();
+            let nb_parameters = operation.parameters.len();
+
+            for (index, operation_parameter) in operation.parameters.iter().enumerate() {
+                let parameter_name = Self::fmt_struct_member(&operation_parameter);
+                write!(output_file, "{}", parameter_name).unwrap();
+                if index < nb_parameters - 1 {
+                    write!(output_file, ", ").unwrap();
+                }
+            }
+
+            write!(output_file, "}};\n").unwrap();
+        }
+        generate_blank_line(output_file);
+    }
+
+    fn generate_source_pre(&mut self, output_file: &mut File) {
+        write!(output_file, "#include \"playdisc.h\"\n").unwrap();
+        generate_blank_line(output_file);
+    }
+
+    fn generate_source_post(&mut self, output_file: &mut File) {
+        let sequence_name = self.sequence_name.as_ref().unwrap().to_lowercase();
+        write!(
+            output_file,
+            "const uint32_t nb_{}_operations = sizeof({}_operations)/sizeof(Operation);\n",
+            sequence_name, sequence_name
+        )
+        .unwrap();
+    }
+
+    fn generate_c_source(&mut self, output_file: &mut File) {
+        self.generate_source_pre(output_file);
+        self.generate_array_instances(output_file);
+        self.generate_operation_instances(output_file);
+        self.generate_operation_list(output_file);
+        self.generate_source_post(output_file);
+    }
+
+    fn generate_c_header(&mut self, output_file: &mut File) {
+        self.generate_header_pre(output_file);
+        generate_blank_line(output_file);
+        self.generate_operation_id_enum(output_file);
+        generate_blank_line(output_file);
+        self.generate_enum_definitions(output_file);
+        generate_blank_line(output_file);
+        self.generate_struct_definitions(output_file);
+        self.generate_operation_variants_definition(output_file);
+        generate_blank_line(output_file);
+        self.generate_operation_definition(output_file);
+        generate_blank_line(output_file);
+        self.generate_header_post(output_file);
+    }
+
+    fn member_type_to_c_type_string(member_type: &MemberType) -> String {
         let ret;
-        match self {
+        match member_type {
             MemberType::X8 => ret = "uint8_t",
             MemberType::X16 => ret = "uint16_t",
             MemberType::X32 => ret = "uint32_t",
@@ -44,88 +251,87 @@ impl ToString for MemberType {
         }
         String::from(String::from("const ") + ret)
     }
-}
 
-fn fill_array<T, F: Fn(&T) -> String>(array: &Vec<T>, format_function: F) -> String {
-    let mut ret;
-    let nb_elements = array.len();
-    ret = String::from("{");
-    for (index, element) in array.iter().enumerate() {
-        ret += format_function(element).as_str();
+    fn fmt_c_array_value<T, F: Fn(&T) -> String>(array: &Vec<T>, format_function: F) -> String {
+        let mut ret;
+        let nb_elements = array.len();
+        ret = String::from("{");
+        for (index, element) in array.iter().enumerate() {
+            ret += format_function(element).as_str();
 
-        if index < nb_elements - 1 {
-            ret = ret + ", ";
+            if index < nb_elements - 1 {
+                ret = ret + ", ";
+            }
         }
+        ret += "}";
+        return ret;
     }
-    ret += "}";
-    return ret;
-}
 
-impl ArrayInstanceVariant {
-    fn generate(&self, array_name: &str) -> String {
+    fn fmt_array_instance(
+        array_instance_variant: &ArrayInstanceVariant,
+        array_name: &str,
+    ) -> String {
         let array_value;
         let array_type;
-        match self {
+        match array_instance_variant {
             ArrayInstanceVariant::X8(array) => {
-                array_value = fill_array(array, |element| format!("0x{:x}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("0x{:x}", element));
                 array_type = "uint8_t";
             }
 
             ArrayInstanceVariant::X16(array) => {
-                array_value = fill_array(array, |element| format!("0x{:x}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("0x{:x}", element));
                 array_type = "uint16_t";
             }
 
             ArrayInstanceVariant::X32(array) => {
-                array_value = fill_array(array, |element| format!("0x{:x}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("0x{:x}", element));
                 array_type = "uint32_t";
             }
             ArrayInstanceVariant::X64(array) => {
-                array_value = fill_array(array, |element| format!("0x{:x}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("0x{:x}", element));
                 array_type = "uint64_t";
             }
             ArrayInstanceVariant::U8(array) => {
-                array_value = fill_array(array, |element| format!("{}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("{}", element));
                 array_type = "uint8_t";
             }
             ArrayInstanceVariant::U16(array) => {
-                array_value = fill_array(array, |element| format!("{}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("{}", element));
                 array_type = "uint16_t";
             }
             ArrayInstanceVariant::U32(array) => {
-                array_value = fill_array(array, |element| format!("{}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("{}", element));
                 array_type = "uint32_t";
             }
             ArrayInstanceVariant::U64(array) => {
-                array_value = fill_array(array, |element| format!("{}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("{}", element));
                 array_type = "uint64_t";
             }
             ArrayInstanceVariant::I8(array) => {
-                array_value = fill_array(array, |element| format!("{}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("{}", element));
                 array_type = "int8_t";
             }
             ArrayInstanceVariant::I16(array) => {
-                array_value = fill_array(array, |element| format!("{}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("{}", element));
                 array_type = "int16_t";
             }
             ArrayInstanceVariant::I32(array) => {
-                array_value = fill_array(array, |element| format!("{}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("{}", element));
                 array_type = "int32_t";
             }
             ArrayInstanceVariant::I64(array) => {
-                array_value = fill_array(array, |element| format!("{}", element));
+                array_value = Self::fmt_c_array_value(array, |element| format!("{}", element));
                 array_type = "int64_t";
             }
             _ => unimplemented!(),
         }
         format!("const {} {}[] = {};", array_type, array_name, array_value)
     }
-}
 
-impl ToString for OperationParameterVariant {
-    fn to_string(&self) -> String {
+    fn fmt_struct_member(operation_parameter_variant: &OperationParameterVariant) -> String {
         let ret;
-        match self {
+        match operation_parameter_variant {
             OperationParameterVariant::X8(param) => {
                 ret = format!(".{} = 0x{:x}", param.name, param.value);
             }
@@ -224,220 +430,5 @@ impl ToString for OperationParameterVariant {
             }
         }
         return ret;
-    }
-}
-
-impl Model {
-    fn generate_header_pre(&mut self, output_file: &mut File) {
-        let sequence_name = self.sequence_name.as_mut().unwrap().to_uppercase();
-        let sequence_name = sequence_name.as_str();
-        write!(output_file, "#ifndef _{sequence_name}_H\n#define _{sequence_name}_H\n#include <stdint.h>\n#include <stdbool.h>\n").unwrap();
-    }
-
-    fn generate_header_post(&mut self, output_file: &mut File) {
-        write!(output_file, "#endif\n").unwrap();
-    }
-
-    fn pascal_to_macro_case(input: &str) -> String {
-        let mut result = String::new();
-        
-        for (i, c) in input.chars().enumerate() {
-            if c.is_uppercase() {
-                if i != 0 {
-                    result.push('_');
-                }
-                result.push(c.to_ascii_uppercase());
-            } else {
-                result.push(c.to_ascii_uppercase());
-            }
-        }
-
-        result
-    }
-
-    fn generate_operation_id_enum(&mut self, output_file: &mut File) {
-        write!(output_file, "enum OperationId{{\n").unwrap();
-
-        for (record_name, _record_members) in self.defined_records.iter() {
-            let record_name = Self::pascal_to_macro_case(record_name);
-                write!(
-                output_file,
-                "   OPERATION_ID_{},\n",
-                record_name
-            )
-            .unwrap();
-        }
-        write!(output_file, "}};\n").unwrap();
-    }
-
-    fn generate_blank_line(output_file: &mut File) {
-        write!(output_file, "\n").unwrap();
-    }
-
-    fn pascal_to_snake_case(input: &str) -> String {
-        let mut result = String::new();
-        
-        for (i, c) in input.chars().enumerate() {
-            if c.is_uppercase() {
-                if i != 0 {
-                    result.push('_');
-                }
-                result.push(c.to_ascii_lowercase());
-            } else {
-                result.push(c);
-            }
-        }
-
-        result
-    }
-
-    fn generate_operation_variants_definition(&mut self, output_file: &mut File) {
-        write!(output_file, "union OperationVariant{{\n").unwrap();
-        for (struct_name, _) in self.defined_records.iter() {
-            let struct_member_variant = Self::pascal_to_snake_case(struct_name);
-            write!(
-                output_file,
-                "   const {struct_name}* const {struct_member_variant};\n"
-            )
-            .unwrap();
-        }
-        write!(output_file, "}};\n").unwrap();
-    }
-
-    fn generate_operation_definition(&mut self, output_file: &mut File) {
-        write!(output_file, "typedef struct{{\n   const enum OperationId id;\n   const union OperationVariant variant;\n}}Operation;\n").unwrap();
-    }
-
-    fn generate_enum_definitions(&mut self, output_file: &mut File) {
-        for (enum_type_name, enum_members) in self.defined_enums.iter() {
-            write!(output_file, "enum {enum_type_name}{{\n").unwrap();
-            for enum_member in enum_members.iter() {
-                write!(output_file, "   {enum_type_name}{enum_member},\n").unwrap();
-            }
-            write!(output_file, "}};\n").unwrap();
-        }
-    }
-
-    fn generate_struct_definitions(&mut self, output_file: &mut File) {
-        for (struct_name, struct_members) in self.defined_records.iter() {
-            write!(output_file, "typedef struct{{\n").unwrap();
-            for struct_member in struct_members {
-                let struct_member_name = struct_member.member_name.as_str();
-                let struct_member_type = struct_member.member_type.to_string();
-                write!(
-                    output_file,
-                    "   {struct_member_type} {struct_member_name};\n"
-                )
-                .unwrap();
-            }
-            write!(output_file, "}}{struct_name};\n",).unwrap();
-            Self::generate_blank_line(output_file);
-        }
-    }
-
-    fn generate_operation_list(&mut self, output_file: &mut File) {
-        write!(
-            output_file,
-            "const Operation {}_operations[] = {{\n",
-            self.sequence_name.as_ref().unwrap()
-        )
-        .unwrap();
-
-        let nb_operations = self.operation_ref_table.len();
-        for (index, operation_table_member) in self.operation_ref_table.iter().enumerate() {
-            let record_name = Self::pascal_to_macro_case(&operation_table_member.operation_type);
-            let operation_id = format!(
-                "OPERATION_ID_{}",
-                record_name
-            );
-            let operation_variant_instance_ref =
-                operation_table_member.operation_variant_ref_name.as_str();
-            let operation_variant_name = Self::pascal_to_snake_case(&operation_table_member.operation_type);
-            write!(output_file, "   {{.id = {operation_id}, .variant={{.{operation_variant_name}=&{operation_variant_instance_ref}}}}}",).unwrap();
-            if index < nb_operations - 1 {
-                write!(output_file, ",\n").unwrap();
-            }
-        }
-
-        write!(output_file, "\n}};\n",).unwrap();
-        Self::generate_blank_line(output_file);
-    }
-
-    fn generate_array_instances(&mut self, output_file: &mut File) {
-        for (operation, operation_instance_name) in self.instanciated_arrays.iter() {
-            write!(
-                output_file,
-                "{}\n",
-                operation.generate(operation_instance_name),
-            )
-            .unwrap();
-        }
-        Self::generate_blank_line(output_file);
-    }
-
-    fn generate_operation_instances(&mut self, output_file: &mut File) {
-        for (operation, operation_instance_name) in self.operation_instances.iter() {
-            let operation_type = operation.operation_type.as_str();
-            write!(
-                output_file,
-                "const {operation_type} {operation_instance_name} = {{"
-            )
-            .unwrap();
-            let nb_parameters = operation.parameters.len();
-
-            for (index, operation_parameter) in operation.parameters.iter().enumerate() {
-                let parameter_name = operation_parameter.to_string();
-                write!(output_file, "{}", parameter_name).unwrap();
-                if index < nb_parameters - 1 {
-                    write!(output_file, ", ").unwrap();
-                }
-            }
-
-            write!(output_file, "}};\n").unwrap();
-        }
-        Self::generate_blank_line(output_file);
-    }
-
-    fn generate_source_pre(&mut self, output_file: &mut File) {
-        write!(output_file, "#include \"playdisc.h\"\n").unwrap();
-        Self::generate_blank_line(output_file);
-    }
-
-    fn generate_source_post(&mut self, output_file: &mut File) {
-        let sequence_name = self.sequence_name.as_ref().unwrap().to_lowercase();
-        write!(
-            output_file,
-            "const uint32_t nb_{}_operations = sizeof({}_operations)/sizeof(Operation);\n",
-            sequence_name, sequence_name
-        )
-        .unwrap();
-    }
-
-    fn generate_c_source(&mut self, output_file: &mut File) {
-        self.generate_source_pre(output_file);
-        self.generate_array_instances(output_file);
-        self.generate_operation_instances(output_file);
-        self.generate_operation_list(output_file);
-        self.generate_source_post(output_file);
-    }
-
-    fn generate_c_header(&mut self, output_file: &mut File) {
-        self.generate_header_pre(output_file);
-        Self::generate_blank_line(output_file);
-        self.generate_operation_id_enum(output_file);
-        Self::generate_blank_line(output_file);
-        self.generate_enum_definitions(output_file);
-        Self::generate_blank_line(output_file);
-        self.generate_struct_definitions(output_file);
-        self.generate_operation_variants_definition(output_file);
-        Self::generate_blank_line(output_file);
-        self.generate_operation_definition(output_file);
-        Self::generate_blank_line(output_file);
-        self.generate_header_post(output_file);
-    }
-
-    pub fn compute_to_c(&mut self, output_c_file: &mut File, output_h_file: &mut File) {
-        self.generate_c_header(output_h_file);
-        self.generate_c_source(output_c_file);
     }
 }

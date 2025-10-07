@@ -1,6 +1,7 @@
 use std::{env, fs::File};
 
 use clap::{Args, Parser, Subcommand};
+use playdisc_generator::CGeneration;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
