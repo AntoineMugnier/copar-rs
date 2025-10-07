@@ -1,4 +1,3 @@
-
 pub static TEST_FILE_H_CONTENT: &str = "\
 #ifndef _TEST_SEQUENCE_H
 #define _TEST_SEQUENCE_H
@@ -13,9 +12,9 @@ enum OperationId{
 };
 
 enum EfuseAccess{
-   EfuseAccess_DDV,
-   EfuseAccess_DAV,
-   EfuseAccess_DXV,
+   EfuseAccessDDV,
+   EfuseAccessDAV,
+   EfuseAccessDXV,
 };
 
 typedef struct{
