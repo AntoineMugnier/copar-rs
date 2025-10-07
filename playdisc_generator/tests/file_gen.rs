@@ -25,7 +25,7 @@ fn test_gen() {
     let mut test_output_header_file = File::create(test_output_header_file_path.as_str()).unwrap();
 
     let converter = Parser::new(test_input_file);
-    let mut model = converter.parse_file();
+    let mut model = converter.parse_file().unwrap();
     model.compute_to_c(&mut test_output_source_file, &mut test_output_header_file);
 
     let open_file = |file_path: &str| -> String {

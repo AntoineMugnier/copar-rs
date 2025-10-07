@@ -15,6 +15,6 @@ fn main() {
     let mut output_h_file = File::create(output_h_file_path).unwrap();
 
     let converter = Parser::new(input_file);
-    let mut model = converter.parse_file();
+    let mut model = converter.parse_file().unwrap();
     model.compute_to_c(&mut output_c_file, &mut output_h_file);
 }
