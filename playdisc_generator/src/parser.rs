@@ -19,6 +19,7 @@ pub enum LineParsingError {
     BadRecordArg(RecordParsingError),
     UnmatchedRangedRecordName(Box<(String, String)>),
     UncompleteRecordArg,
+    MissingEndDelimiter(String),
     MissingRecordArgs,
 }
 
@@ -99,7 +100,7 @@ impl Parser {
                 }
                 if tokens[1].split("#=").count() > 1 {
                     return Err(LineParsingError::MultipleRecordDelimiters(String::from(
-                        "#=",
+                        "#= ",
                     )));
                 }
 
@@ -108,7 +109,7 @@ impl Parser {
 
                 if tokens.len() > 2 {
                     return Err(LineParsingError::MultipleRecordDelimiters(String::from(
-                        "=#",
+                        " =#",
                     )));
                 }
                 if sub_tokens.len() == 2 {
@@ -123,7 +124,7 @@ impl Parser {
                 }
                 if tokens[1].split("#[").count() > 1 {
                     return Err(LineParsingError::MultipleRecordDelimiters(String::from(
-                        "#[",
+                        "#[ ",
                     )));
                 }
                 self.line_buffer = String::new();
@@ -151,7 +152,7 @@ impl Parser {
             self.capturing_state = RecordCapturingState::OneShot;
         } else if tokens.len() > 2 {
             return Err(LineParsingError::MultipleRecordDelimiters(String::from(
-                "=#",
+                " =#",
             )));
         }
 
@@ -161,12 +162,25 @@ impl Parser {
     fn ranged_capture_state(&mut self, line: &str) -> ParserResult<()> {
         let tokens: Vec<&str> = line.split("#- ").collect();
         if tokens.len() == 2 {
-            self.line_buffer += " ";
-            self.line_buffer += tokens[1];
-            return Ok(());
+            let sub_tokens: Vec<&str> = tokens[1].split(" -#").collect();
+            let nb_sub_tokens = sub_tokens.len();
+            if nb_sub_tokens == 2 {
+                self.line_buffer += " ";
+                self.line_buffer += sub_tokens[0];
+                return Ok(());
+            }
+            else if nb_sub_tokens == 1 {
+                return Err(LineParsingError::MissingEndDelimiter(String::from(" -#")));
+            }
+            else{
+            return Err(LineParsingError::MultipleRecordDelimiters(String::from(
+                " -#",
+            )));
+            }
+
         } else if tokens.len() > 2 {
             return Err(LineParsingError::MultipleRecordDelimiters(String::from(
-                "#-",
+                "#- ",
             )));
         }
 
@@ -191,7 +205,7 @@ impl Parser {
 
         if tokens.len() > 2 {
             return Err(LineParsingError::MultipleRecordDelimiters(String::from(
-                ":#",
+                " :#",
             )));
         };
 
@@ -218,7 +232,7 @@ impl Parser {
                     *line_index_ref = line_index;
                     return Ok(tokens[1].to_string());
                 } else if tokens.len() > 2 {
-                    let line_error = LineParsingError::MultipleRecordDelimiters(String::from("#:"));
+                    let line_error = LineParsingError::MultipleRecordDelimiters(String::from("#: "));
                     return Err(FileParsingError::LineError {
                         line_nb: line_index + 1,
                         line_error,
