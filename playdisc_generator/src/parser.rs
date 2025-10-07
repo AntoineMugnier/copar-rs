@@ -34,7 +34,9 @@ pub enum FileParsingError{
         line_error: LineParsingError,
     },
     NoSequenceStart,
-    NoSequenceEnd,
+    NoSequenceEnd{
+        last_record_start_line: usize
+    },
 }
 
 pub struct Parser {
@@ -42,6 +44,8 @@ pub struct Parser {
     input_file_buffer: Option<String>,
     model: Model,
     capturing_state: RecordCapturingState,
+    last_record_start_line: usize,
+    current_line: usize,
     line_buffer: String,
 }
 
@@ -55,6 +59,8 @@ impl Parser {
             input_file_buffer: Some(input_file_buffer),
             model: Model::new(),
             capturing_state: RecordCapturingState::OneShot,
+            last_record_start_line: 0,
+            current_line: 0,
             line_buffer: String::new(),
         }
     }
@@ -85,12 +91,14 @@ impl Parser {
 
     fn parse_line_buffer(&mut self) -> ParserResult<()> {
         let record_str_vec: Vec<&str> = self.line_buffer.splitn(2, ' ').collect();
+            let name = String::from(record_str_vec[0]);
+            let mut args = Vec::new();
+            if record_str_vec.len() >= 2{
+                args = Self::parse_record_args(record_str_vec[1])?;
+            }
 
-        let name = String::from(record_str_vec[0]);
-        let args = Self::parse_record_args(record_str_vec[1])?;
-        let uni_record = UniRecord::new(name, args);
-
-        self.model.add_record(uni_record);
+            let uni_record = UniRecord::new(name, args);
+            self.model.add_record(uni_record);
         Ok(())
     }
      
@@ -101,10 +109,12 @@ impl Parser {
             Ok(delimiter_token_char) =>{
                 match delimiter_token_char {
                     '=' => {
+                        self.last_record_start_line = self.current_line;
                         self.line_buffer = line.to_string();
                         self.parse_line_buffer()?;
                     },
                     '[' => {
+                        self.last_record_start_line = self.current_line;
                         self.line_buffer = line.to_string();
                         self.capturing_state = RecordCapturingState::Ranged;
                     }
@@ -182,6 +192,22 @@ impl Parser {
         Ok(())
     }
 
+    fn compare_record_name_to_ref(&mut self, line: &mut &str) -> ParserResult<()>{
+        let tokens : Vec<&str> = line.splitn(2," ").collect();
+        let record_name = tokens[0];
+        let previous_record_name = self.line_buffer.split(" ").next().unwrap();
+        if record_name != previous_record_name {
+            return Err(LineParsingError::UnmatchedRangedRecordName(Box::new((
+                previous_record_name.to_string(),
+                record_name.to_string(),
+            ))));
+        }
+        if tokens.len() == 2{
+            *line = tokens[1];
+        }
+        Ok(())
+    }
+
     fn ranged_capture_state(&mut self, mut line: &str) -> ParserResult<()> {
         let res = Self::get_delimited_content(&mut line);
         
@@ -189,27 +215,21 @@ impl Parser {
             Ok(delimiter_token_char) =>{
                 match delimiter_token_char {
                     '-' =>{
-                        self.line_buffer += " ";
-                        self.line_buffer += line;
+                        if let Ok(()) = self.compare_record_name_to_ref(&mut line){
+                            self.line_buffer += " ";
+                            self.line_buffer += line;
+                        }
                     }
                     ']' =>{
-                        let record_name = line;
-                        let previous_record_name = self.line_buffer.split(" ").next().unwrap();
-                        if record_name != previous_record_name {
-                            return Err(LineParsingError::UnmatchedRangedRecordName(Box::new((
-                                previous_record_name.to_string(),
-                                record_name.to_string(),
-                            ))));
+                        if let Ok(()) = self.compare_record_name_to_ref(&mut line){
+                            self.capturing_state = RecordCapturingState::OneShot;
+                            self.parse_line_buffer()?;
                         }
-                    
-                        self.capturing_state = RecordCapturingState::OneShot;
-                        self.parse_line_buffer()?;
                     }
                     _ => ()
                 }
             }
-            Err(LineParsingError::UnparsableLine) =>(),
-            Err(e) => return Err(e),
+            Err(_) => (), // Ignore all other lines in this state
         }
         Ok(())
     }
@@ -278,7 +298,7 @@ impl Parser {
                 match res {
                     Ok(delimiter_char) => {
                         if delimiter_char == '<' {
-                            *line_index_ref = line_index;
+                            *line_index_ref += line_index;
                             return FileParsingResult::Ok(line_content.to_string());
                         }
                     }
@@ -299,11 +319,12 @@ impl Parser {
     pub fn parse_file(mut self) -> Result<Model, FileParsingError> {
         let input_file_buffer = self.input_file_buffer.take().unwrap();
         let mut lines_it = input_file_buffer.lines();
-        let mut line_index_offset = 0;
+        let mut line_index_offset = 1;
         let mut end_of_parsing = false;
         self.sequence_name = Self::move_to_begin_token(&mut lines_it, &mut line_index_offset)?;
 
         for (line_index, mut line_content) in lines_it.enumerate() {
+            self.current_line = line_index + line_index_offset + 1;
             Self::remove_timestamp(&mut line_content);
 
             if line_content.len() > 0 {
@@ -321,7 +342,7 @@ impl Parser {
                 };
 
                 res.map_err(|e| FileParsingError::LineError {
-                    line_nb: line_index + line_index_offset + 1,
+                    line_nb: self.current_line,
                     line_error: e,
                 })?;
                 
@@ -331,6 +352,6 @@ impl Parser {
                 }
             }
         }
-        return Err(FileParsingError::NoSequenceEnd);
+        return Err(FileParsingError::NoSequenceEnd{ last_record_start_line: self.last_record_start_line});
     }
 }

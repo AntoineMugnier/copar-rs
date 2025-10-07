@@ -219,7 +219,7 @@ impl ToString for OperationParameterVariant {
                 ret = format!(".{} = {}", param.name, val);
             }
             OperationParameterVariant::Identifier(param) => {
-                let val = param.enum_type.clone() + "_" + param.value.as_str();
+                let val = param.enum_type.clone() + param.value.as_str();
                 ret = format!(".{} = {}", param.name, val);
             }
         }
@@ -312,7 +312,7 @@ impl Model {
         for (enum_type_name, enum_members) in self.defined_enums.iter() {
             write!(output_file, "enum {enum_type_name}{{\n").unwrap();
             for enum_member in enum_members.iter() {
-                write!(output_file, "   {enum_type_name}_{enum_member},\n").unwrap();
+                write!(output_file, "   {enum_type_name}{enum_member},\n").unwrap();
             }
             write!(output_file, "}};\n").unwrap();
         }
