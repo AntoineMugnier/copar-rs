@@ -337,7 +337,7 @@ impl private::Sealed for Model {
             ),
              _ => unimplemented!("Array type in ArrayInstanceVariant not supported for C# generation"),
         };
-        format!("public static readonly {cs_type}[] {array_name} = new {cs_type}[] {array_value};")
+        format!("public static readonly {cs_type}[] {array_name} =  {array_value};")
     }
 
     fn fmt_cs_struct_member(operation_parameter_variant: &OperationParameterVariant) -> String {
