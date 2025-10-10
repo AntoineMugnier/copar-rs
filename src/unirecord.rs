@@ -532,14 +532,6 @@ impl UniRecord {
         UniRecord { name, args }
     }
 
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    pub fn args(&self) -> &Vec<UniRecordArgVariant> {
-        &self.args
-    }
-
     pub fn dissassemble(self) -> (String, Vec<UniRecordArgVariant>) {
         (self.name, self.args)
     }

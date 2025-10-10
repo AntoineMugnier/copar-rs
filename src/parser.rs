@@ -11,7 +11,7 @@ enum RecordCapturingState {
     Ranged,
 }
 
-type ParserResult<T> = Result<T, LineParsingError>;
+pub type ParserResult<T> = Result<T, LineParsingError>;
 
 #[derive(Debug)]
 pub enum LineParsingError {
@@ -40,7 +40,7 @@ pub enum FileParsingError {
     },
 }
 
-/// Copar command parser
+// Copar command parser
 pub struct Parser {
     sequence_name: String,
     input_file_buffer: Option<String>,
@@ -52,7 +52,7 @@ pub struct Parser {
 }
 
 impl Parser {
-    /// Instanciate this structure with the log file containing the copar records
+    // Instanciate this structure with the log file containing the copar records
     pub fn new(mut input_file: File) -> Parser {
         let mut input_file_buffer = String::new();
         input_file.read_to_string(&mut input_file_buffer).unwrap();

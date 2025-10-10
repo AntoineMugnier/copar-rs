@@ -7,4 +7,3 @@ mod unirecord;
 pub use generators::c_generation::CGeneration;
 pub use generators::c_sharp_generation::CSharpGeneration;
 pub use model::Model;
-pub use parser::Parser;

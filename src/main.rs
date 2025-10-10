@@ -1,7 +1,7 @@
 use std::fs::File;
 
 use clap::{Args, Parser, Subcommand};
-use copar::{CGeneration, CSharpGeneration};
+use copar::{CGeneration, CSharpGeneration, Model};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -34,8 +34,7 @@ fn generate_csharp(input_log_file_path: &str, output_file_path: &str) {
     let input_file = File::open(input_log_file_path).unwrap();
     let mut output_file = File::create(output_file_path).unwrap();
 
-    let converter = copar::Parser::new(input_file);
-    let mut model = converter.parse_file().unwrap();
+    let mut model = Model::parse(input_file).unwrap();
     model.compute_to_cs(&mut output_file);
 }
 
@@ -44,8 +43,7 @@ fn generate_c(input_log_file_path: &str, output_c_file_path: &str, output_h_file
     let mut output_c_file = File::create(output_c_file_path).unwrap();
     let mut output_h_file = File::create(output_h_file_path).unwrap();
 
-    let converter = copar::Parser::new(input_file);
-    let mut model = converter.parse_file().unwrap();
+    let mut model = Model::parse(input_file).unwrap();
     model.compute_to_c(&mut output_c_file, &mut output_h_file);
 }
 

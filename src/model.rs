@@ -1,6 +1,9 @@
-use crate::unirecord::{IdentifierRecordArg, MemberType, UniRecord, UniRecordArgVariant};
+use crate::{
+    parser::{FileParsingError, Parser},
+    unirecord::{IdentifierRecordArg, MemberType, UniRecord, UniRecordArgVariant},
+};
 use indexmap::IndexMap;
-use std::hash::Hash;
+use std::{fs::File, hash::Hash};
 
 use ordered_float::OrderedFloat;
 type OrderedF32 = OrderedFloat<f32>;
@@ -106,6 +109,11 @@ pub struct Model {
 impl Model {
     pub(crate) fn set_sequence_name(&mut self, sequence_name: String) {
         self.sequence_name = Some(sequence_name);
+    }
+
+    pub fn parse(input_file: File) -> Result<Model, FileParsingError> {
+        let parser = Parser::new(input_file);
+        parser.parse_file()
     }
 
     fn add_identifier_declaration(&mut self, argument: &IdentifierRecordArg) {
