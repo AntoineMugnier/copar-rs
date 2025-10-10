@@ -37,6 +37,7 @@ mod private {
 
 use private::Sealed;
 
+/// Trait allowing copar model to generate C code
 pub trait CGeneration: private::Sealed {
     fn compute_to_c(&mut self, output_c_file: &mut File, output_h_file: &mut File);
 }

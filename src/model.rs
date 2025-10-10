@@ -89,6 +89,8 @@ pub(crate) struct OperationTableMember {
     pub(crate) operation_variant_ref_name: String,
 }
 
+/// Copar model containing the full representation of a copar log file.
+/// Can be used to generate the commands table in multiple languages
 #[derive(Debug)]
 pub struct Model {
     pub(crate) sequence_name: Option<String>,
@@ -102,7 +104,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn set_sequence_name(&mut self, sequence_name: String) {
+    pub(crate) fn set_sequence_name(&mut self, sequence_name: String) {
         self.sequence_name = Some(sequence_name);
     }
 
@@ -133,7 +135,8 @@ impl Model {
             new_array_instance_name
         }
     }
-    pub fn add_structure_definition(
+
+    pub(crate) fn add_structure_definition(
         &mut self,
         record_name: String,
         record_args: &[UniRecordArgVariant],
@@ -153,7 +156,7 @@ impl Model {
         }
     }
 
-    pub fn add_record(&mut self, record: UniRecord) {
+    pub(crate) fn add_record(&mut self, record: UniRecord) {
         let (record_type, record_args) = record.dissassemble();
         self.add_structure_definition(record_type.clone(), &record_args);
 

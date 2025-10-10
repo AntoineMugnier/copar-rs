@@ -40,6 +40,7 @@ pub enum FileParsingError {
     },
 }
 
+/// Copar command parser
 pub struct Parser {
     sequence_name: String,
     input_file_buffer: Option<String>,
@@ -51,6 +52,7 @@ pub struct Parser {
 }
 
 impl Parser {
+    /// Instanciate this structure with the log file containing the copar records
     pub fn new(mut input_file: File) -> Parser {
         let mut input_file_buffer = String::new();
         input_file.read_to_string(&mut input_file_buffer).unwrap();
@@ -312,6 +314,7 @@ impl Parser {
         Err(FileParsingError::NoSequenceStart)
     }
 
+    /// Parse the file, returning a valid copar model
     pub fn parse_file(mut self) -> Result<Model, FileParsingError> {
         let input_file_buffer = self.input_file_buffer.take().unwrap();
         let mut lines_it = input_file_buffer.lines();
