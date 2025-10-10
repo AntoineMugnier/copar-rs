@@ -1,11 +1,10 @@
-mod c_generation;
-mod c_sharp_generation;
-mod parser;
-mod model;
-mod unirecord;
 mod code_generation_commons;
+mod generators;
+mod model;
+mod parser;
+mod unirecord;
 
-pub use c_generation::CGeneration;
-pub use c_sharp_generation::CSharpGeneration;
-pub use parser::Parser;
+pub use generators::c_generation::CGeneration;
+pub use generators::c_sharp_generation::CSharpGeneration;
 pub use model::Model;
+pub use parser::Parser;

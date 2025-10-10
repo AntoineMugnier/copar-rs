@@ -10,7 +10,7 @@ mod private {
     use super::*;
     use crate::unirecord::MemberType;
 
-    pub(crate) trait Sealed {
+    pub trait Sealed {
         fn generate_cs_file(&mut self, output_file: &mut File);
         fn generate_cs_namespace_open(&mut self, output_file: &mut File);
         fn generate_cs_namespace_close(&mut self, output_file: &mut File);
@@ -24,7 +24,7 @@ mod private {
         fn generate_cs_instances(&mut self, output_file: &mut File);
         fn generate_cs_operation_list(&mut self, output_file: &mut File);
         fn member_type_to_cs_type_string(member_type: &MemberType) -> String;
-        fn fmt_cs_array_value<T, F: Fn(&T) -> String>(array: &Vec<T>, format_function: F) -> String;
+        fn fmt_cs_array_value<T, F: Fn(&T) -> String>(array: &[T], format_function: F) -> String;
         fn fmt_cs_array_instance(
             array_instance_variant: &ArrayInstanceVariant,
             array_name: &str,
@@ -75,7 +75,7 @@ impl private::Sealed for Model {
         let base_class_name = self.sequence_name.as_ref().map_or("Playdisc", |s| s);
         // Use a helper to ensure PascalCase for the class name
         let static_class_name = format!("{}Constants", Self::to_pascal_case(base_class_name));
-        
+
         self.generate_cs_static_class_open(output_file, &static_class_name);
         generate_blank_line(output_file);
 
@@ -93,74 +93,83 @@ impl private::Sealed for Model {
         // Consider making the namespace configurable or derived from sequence_name
         let namespace = self.sequence_name.as_ref().map_or_else(
             || "GeneratedPlaydisc".to_string(),
-            |s_name| format!("Generated{}", Self::to_pascal_case(s_name))
+            |s_name| format!("Generated{}", Self::to_pascal_case(s_name)),
         );
         write!(output_file, "namespace {}\n{{\n", namespace).unwrap();
     }
 
     fn generate_cs_namespace_close(&mut self, output_file: &mut File) {
-        write!(output_file, "}}\n").unwrap();
+        writeln!(output_file, "}}").unwrap();
     }
 
     fn generate_cs_static_class_open(&mut self, output_file: &mut File, class_name: &str) {
-        write!(output_file, "    public static class {}\n    {{\n", class_name).unwrap();
+        write!(
+            output_file,
+            "    public static class {}\n    {{\n",
+            class_name
+        )
+        .unwrap();
     }
 
     fn generate_cs_static_class_close(&mut self, output_file: &mut File) {
-        write!(output_file, "    }}\n").unwrap();
+        writeln!(output_file, "    }}").unwrap();
     }
 
     fn generate_cs_operation_id_enum(&mut self, output_file: &mut File) {
-        write!(output_file, "    public enum OperationId {{\n").unwrap();
+        writeln!(output_file, "    public enum OperationId {{").unwrap();
         // Assuming operation types are derived from the keys of defined_records
         // or from a dedicated list of operation types if not all records are operations.
         // For C#, enum members are typically PascalCase.
         // self.defined_records.keys() are assumed to be PascalCase (e.g. "HciCommand")
         for record_name in self.defined_records.keys() {
-            write!(output_file, "        {},\n", record_name).unwrap();
+            writeln!(output_file, "        {},", record_name).unwrap();
         }
-        write!(output_file, "    }}\n").unwrap();
+        writeln!(output_file, "    }}").unwrap();
         generate_blank_line(output_file);
     }
 
     fn generate_cs_operation_definition(&mut self, output_file: &mut File) {
-        write!(output_file, "    public readonly struct Operation {{\n").unwrap();
-        write!(output_file, "        public readonly OperationId Id;\n").unwrap();
+        writeln!(output_file, "    public readonly struct Operation {{").unwrap();
+        writeln!(output_file, "        public readonly OperationId Id;").unwrap();
         write!(output_file, "        public readonly object Variant;\n\n").unwrap();
-        write!(output_file, "        public Operation(OperationId id, object variant) {{\n").unwrap();
-        write!(output_file, "            Id = id;\n").unwrap();
-        write!(output_file, "            Variant = variant;\n").unwrap();
-        write!(output_file, "        }}\n").unwrap();
-        write!(output_file, "    }}\n").unwrap();
+        writeln!(
+            output_file,
+            "        public Operation(OperationId id, object variant) {{"
+        )
+        .unwrap();
+        writeln!(output_file, "            Id = id;").unwrap();
+        writeln!(output_file, "            Variant = variant;").unwrap();
+        writeln!(output_file, "        }}").unwrap();
+        writeln!(output_file, "    }}").unwrap();
         generate_blank_line(output_file);
     }
 
     fn generate_cs_enums(&mut self, output_file: &mut File) {
         for (enum_type_name, enum_members) in self.defined_enums.iter() {
-            write!(output_file, "    public enum {} {{\n", enum_type_name).unwrap();
+            writeln!(output_file, "    public enum {} {{", enum_type_name).unwrap();
             for enum_member in enum_members.iter() {
-                write!(output_file, "        {},\n", enum_member).unwrap();
+                writeln!(output_file, "        {},", enum_member).unwrap();
             }
-            write!(output_file, "    }}\n").unwrap();
+            writeln!(output_file, "    }}").unwrap();
             generate_blank_line(output_file); // Add blank line after each enum
         }
     }
 
     fn generate_cs_structs(&mut self, output_file: &mut File) {
         for (struct_name, struct_members) in self.defined_records.iter() {
-            write!(output_file, "    public struct {} {{\n", struct_name).unwrap();
+            writeln!(output_file, "    public struct {} {{", struct_name).unwrap();
             for struct_member in struct_members {
                 let member_name = &struct_member.member_name; // Assuming PascalCase
                 let member_cs_type =
                     Self::member_type_to_cs_type_string(&struct_member.member_type);
-                write!(
+                writeln!(
                     output_file,
-                    "        public {} {} {{ get; set; }}\n",
+                    "        public {} {} {{ get; set; }}",
                     member_cs_type, member_name
                 )
                 .unwrap();
             }
-            write!(output_file, "    }}\n").unwrap();
+            writeln!(output_file, "    }}").unwrap();
             generate_blank_line(output_file); // Add blank line after each struct
         }
     }
@@ -169,10 +178,10 @@ impl private::Sealed for Model {
         for (array_variant, array_instance_name) in self.instanciated_arrays.iter() {
             // Assuming array_instance_name is already in PascalCase for C#
             let csharp_array_name = Self::to_pascal_case(array_instance_name);
-            write!(
+            writeln!(
                 output_file,
-                "        {}\n",
-                Self::fmt_cs_array_instance(&array_variant, &csharp_array_name),
+                "        {}",
+                Self::fmt_cs_array_instance(array_variant, &csharp_array_name),
             )
             .unwrap();
         }
@@ -184,7 +193,7 @@ impl private::Sealed for Model {
     fn generate_cs_instances(&mut self, output_file: &mut File) {
         for (operation, operation_instance_name) in self.operation_instances.iter() {
             let operation_type = operation.operation_type.as_str(); // Assumed PascalCase
-            // Assuming operation_instance_name needs conversion to PascalCase for C#
+                                                                    // Assuming operation_instance_name needs conversion to PascalCase for C#
             let csharp_op_instance_name = Self::to_pascal_case(operation_instance_name);
             write!(
                 output_file,
@@ -196,13 +205,13 @@ impl private::Sealed for Model {
 
             for (index, operation_parameter) in operation.parameters.iter().enumerate() {
                 // fmt_cs_struct_member assumes param.name is PascalCase
-                let param_assignment = Self::fmt_cs_struct_member(&operation_parameter);
+                let param_assignment = Self::fmt_cs_struct_member(operation_parameter);
                 write!(output_file, "{}", param_assignment).unwrap();
                 if index < nb_parameters - 1 {
                     write!(output_file, ", ").unwrap();
                 }
             }
-            write!(output_file, " }};\n").unwrap();
+            writeln!(output_file, " }};").unwrap();
         }
         if !self.operation_instances.is_empty() {
             generate_blank_line(output_file);
@@ -214,9 +223,9 @@ impl private::Sealed for Model {
         // Use a helper to ensure PascalCase for the array name
         let array_name = format!("{}Operations", Self::to_pascal_case(base_name));
 
-        write!(
+        writeln!(
             output_file,
-            "        public static readonly Operation[] {} = {{\n",
+            "        public static readonly Operation[] {} = {{",
             array_name
         )
         .unwrap();
@@ -228,15 +237,15 @@ impl private::Sealed for Model {
             let operation_id_member = &op_ref.operation_type; // Assumed PascalCase
             let csharp_instance_name = Self::to_pascal_case(&op_ref.operation_variant_ref_name);
 
-            write!(
+            writeln!(
                 output_file,
-                "            new Operation(OperationId.{}, {}),\n",
+                "            new Operation(OperationId.{}, {}),",
                 operation_id_member, csharp_instance_name
             )
             .unwrap();
         }
 
-        write!(output_file, "        }};\n").unwrap();
+        writeln!(output_file, "        }};").unwrap();
         if !self.operation_ref_table.is_empty() {
             generate_blank_line(output_file);
         }
@@ -269,7 +278,7 @@ impl private::Sealed for Model {
         }
     }
 
-    fn fmt_cs_array_value<T, F: Fn(&T) -> String>(array: &Vec<T>, format_function: F) -> String {
+    fn fmt_cs_array_value<T, F: Fn(&T) -> String>(array: &[T], format_function: F) -> String {
         let mut ret = String::from("{ ");
         let nb_elements = array.len();
         for (index, element) in array.iter().enumerate() {
@@ -291,10 +300,9 @@ impl private::Sealed for Model {
                 Self::fmt_cs_array_value(array, |e| format!("0x{e:x}")),
                 "byte",
             ),
-            ArrayInstanceVariant::U8(array) => (
-                Self::fmt_cs_array_value(array, |e| format!("{e}")),
-                "byte",
-            ),
+            ArrayInstanceVariant::U8(array) => {
+                (Self::fmt_cs_array_value(array, |e| format!("{e}")), "byte")
+            }
             ArrayInstanceVariant::X16(array) => (
                 Self::fmt_cs_array_value(array, |e| format!("0x{e:x}")),
                 "ushort",
@@ -307,35 +315,31 @@ impl private::Sealed for Model {
                 Self::fmt_cs_array_value(array, |e| format!("0x{e:x}")),
                 "uint",
             ),
-            ArrayInstanceVariant::U32(array) => (
-                Self::fmt_cs_array_value(array, |e| format!("{e}")),
-                "uint",
-            ),
+            ArrayInstanceVariant::U32(array) => {
+                (Self::fmt_cs_array_value(array, |e| format!("{e}")), "uint")
+            }
             ArrayInstanceVariant::X64(array) => (
                 Self::fmt_cs_array_value(array, |e| format!("0x{e:x}")),
                 "ulong",
             ),
-            ArrayInstanceVariant::U64(array) => (
-                Self::fmt_cs_array_value(array, |e| format!("{e}")),
-                "ulong",
-            ),
-            ArrayInstanceVariant::I8(array) => (
-                Self::fmt_cs_array_value(array, |e| format!("{e}")),
-                "sbyte",
-            ),
-            ArrayInstanceVariant::I16(array) => (
-                Self::fmt_cs_array_value(array, |e| format!("{e}")),
-                "short",
-            ),
-            ArrayInstanceVariant::I32(array) => (
-                Self::fmt_cs_array_value(array, |e| format!("{e}")),
-                "int",
-            ),
-            ArrayInstanceVariant::I64(array) => (
-                Self::fmt_cs_array_value(array, |e| format!("{e}")),
-                "long",
-            ),
-             _ => unimplemented!("Array type in ArrayInstanceVariant not supported for C# generation"),
+            ArrayInstanceVariant::U64(array) => {
+                (Self::fmt_cs_array_value(array, |e| format!("{e}")), "ulong")
+            }
+            ArrayInstanceVariant::I8(array) => {
+                (Self::fmt_cs_array_value(array, |e| format!("{e}")), "sbyte")
+            }
+            ArrayInstanceVariant::I16(array) => {
+                (Self::fmt_cs_array_value(array, |e| format!("{e}")), "short")
+            }
+            ArrayInstanceVariant::I32(array) => {
+                (Self::fmt_cs_array_value(array, |e| format!("{e}")), "int")
+            }
+            ArrayInstanceVariant::I64(array) => {
+                (Self::fmt_cs_array_value(array, |e| format!("{e}")), "long")
+            }
+            _ => {
+                unimplemented!("Array type in ArrayInstanceVariant not supported for C# generation")
+            }
         };
         format!("public static readonly {cs_type}[] {array_name} =  {array_value};")
     }
@@ -349,31 +353,37 @@ impl private::Sealed for Model {
             OperationParameterVariant::X8(param) => format!("{} = 0x{:x}", param.name, param.value),
             OperationParameterVariant::U8(param) => format!("{} = {}", param.name, param.value),
             OperationParameterVariant::I8(param) => format!("{} = {}", param.name, param.value),
-            OperationParameterVariant::X16(param) => format!("{} = 0x{:x}", param.name, param.value),
+            OperationParameterVariant::X16(param) => {
+                format!("{} = 0x{:x}", param.name, param.value)
+            }
             OperationParameterVariant::U16(param) => format!("{} = {}", param.name, param.value),
             OperationParameterVariant::I16(param) => format!("{} = {}", param.name, param.value),
-            OperationParameterVariant::X32(param) => format!("{} = 0x{:x}", param.name, param.value),
+            OperationParameterVariant::X32(param) => {
+                format!("{} = 0x{:x}", param.name, param.value)
+            }
             OperationParameterVariant::U32(param) => format!("{} = {}", param.name, param.value),
             OperationParameterVariant::I32(param) => format!("{} = {}", param.name, param.value),
-            OperationParameterVariant::X64(param) => format!("{} = 0x{:x}", param.name, param.value),
+            OperationParameterVariant::X64(param) => {
+                format!("{} = 0x{:x}", param.name, param.value)
+            }
             OperationParameterVariant::U64(param) => format!("{} = {}", param.name, param.value),
             OperationParameterVariant::I64(param) => format!("{} = {}", param.name, param.value),
             OperationParameterVariant::F32(param) => format!("{} = {}f", param.name, param.value), // C# float literal
             OperationParameterVariant::F64(param) => format!("{} = {}", param.name, param.value),
-            OperationParameterVariant::ArrayOfX8(param) |
-            OperationParameterVariant::ArrayOfU8(param) |
-            OperationParameterVariant::ArrayOfI8(param) |
-            OperationParameterVariant::ArrayOfX16(param) |
-            OperationParameterVariant::ArrayOfU16(param) |
-            OperationParameterVariant::ArrayOfI16(param) |
-            OperationParameterVariant::ArrayOfX32(param) |
-            OperationParameterVariant::ArrayOfU32(param) |
-            OperationParameterVariant::ArrayOfI32(param) |
-            OperationParameterVariant::ArrayOfX64(param) |
-            OperationParameterVariant::ArrayOfU64(param) |
-            OperationParameterVariant::ArrayOfI64(param) |
-            OperationParameterVariant::ArrayOfF32(param) |
-            OperationParameterVariant::ArrayOfF64(param) => {
+            OperationParameterVariant::ArrayOfX8(param)
+            | OperationParameterVariant::ArrayOfU8(param)
+            | OperationParameterVariant::ArrayOfI8(param)
+            | OperationParameterVariant::ArrayOfX16(param)
+            | OperationParameterVariant::ArrayOfU16(param)
+            | OperationParameterVariant::ArrayOfI16(param)
+            | OperationParameterVariant::ArrayOfX32(param)
+            | OperationParameterVariant::ArrayOfU32(param)
+            | OperationParameterVariant::ArrayOfI32(param)
+            | OperationParameterVariant::ArrayOfX64(param)
+            | OperationParameterVariant::ArrayOfU64(param)
+            | OperationParameterVariant::ArrayOfI64(param)
+            | OperationParameterVariant::ArrayOfF32(param)
+            | OperationParameterVariant::ArrayOfF64(param) => {
                 // param.value is the array instance name, needs to be PascalCase
                 let csharp_array_ref_name = Self::to_pascal_case(&param.value);
                 format!("{} = {}", param.name, csharp_array_ref_name)

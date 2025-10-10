@@ -1,6 +1,6 @@
 mod test_files;
-use playdisc_generator::Parser;
-use playdisc_generator::CGeneration;
+use copar::CGeneration;
+use copar::Parser;
 use std::{
     fs::File,
     io::{Read, Write},

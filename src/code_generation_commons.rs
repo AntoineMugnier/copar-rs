@@ -1,12 +1,12 @@
 use std::{fs::File, io::Write};
 
 pub(crate) fn generate_blank_line(output_file: &mut File) {
-    write!(output_file, "\n").unwrap();
+    writeln!(output_file).unwrap();
 }
 
 pub(crate) fn pascal_to_snake_case(input: &str) -> String {
     let mut result = String::new();
-    
+
     for (i, c) in input.chars().enumerate() {
         if c.is_uppercase() {
             if i != 0 {
@@ -22,7 +22,7 @@ pub(crate) fn pascal_to_snake_case(input: &str) -> String {
 }
 pub(crate) fn pascal_to_macro_case(input: &str) -> String {
     let mut result = String::new();
-    
+
     for (i, c) in input.chars().enumerate() {
         if c.is_uppercase() {
             if i != 0 {
@@ -36,3 +36,4 @@ pub(crate) fn pascal_to_macro_case(input: &str) -> String {
 
     result
 }
+

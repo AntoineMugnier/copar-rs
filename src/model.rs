@@ -1,8 +1,6 @@
-use crate::unirecord::{
-    IdentifierRecordArg, MemberType, UniRecord, UniRecordArgVariant,
-};
-use std::hash::Hash;
+use crate::unirecord::{IdentifierRecordArg, MemberType, UniRecord, UniRecordArgVariant};
 use indexmap::IndexMap;
+use std::hash::Hash;
 
 use ordered_float::OrderedFloat;
 type OrderedF32 = OrderedFloat<f32>;
@@ -15,20 +13,20 @@ pub(crate) struct StructureDefinitionMember {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub(crate) struct OperationParameter<T> {
+pub struct OperationParameter<T> {
     pub(crate) name: String,
     pub(crate) value: T,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub(crate) struct IdentifierOperationParameter {
+pub struct IdentifierOperationParameter {
     pub(crate) name: String,
     pub(crate) enum_type: String,
     pub(crate) value: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub(crate) enum OperationParameterVariant {
+pub enum OperationParameterVariant {
     X8(OperationParameter<u8>),
     X16(OperationParameter<u16>),
     X32(OperationParameter<u32>),
@@ -68,7 +66,7 @@ pub(crate) struct Operation {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub(crate) enum ArrayInstanceVariant {
+pub enum ArrayInstanceVariant {
     X8(Vec<u8>),
     X16(Vec<u16>),
     X32(Vec<u32>),
@@ -86,9 +84,9 @@ pub(crate) enum ArrayInstanceVariant {
 }
 
 #[derive(Debug)]
-pub(crate) struct OperationTableMember{
+pub(crate) struct OperationTableMember {
     pub(crate) operation_type: String,
-    pub(crate) operation_variant_ref_name: String
+    pub(crate) operation_variant_ref_name: String,
 }
 
 #[derive(Debug)]
@@ -104,19 +102,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new() -> Model {
-        Model {
-            sequence_name: None,
-            array_instance_counter: 0,
-            operation_instance_counter: 0,
-            defined_enums: IndexMap::new(),
-            defined_records: IndexMap::new(),
-            instanciated_arrays: IndexMap::new(),
-            operation_instances: IndexMap::new(),
-            operation_ref_table: Vec::new(),
-        }
-    }
-    pub fn set_sequence_name(&mut self, sequence_name: String){
+    pub fn set_sequence_name(&mut self, sequence_name: String) {
         self.sequence_name = Some(sequence_name);
     }
 
@@ -130,10 +116,8 @@ impl Model {
                 enum_decl.push(enum_value);
             }
         } else {
-            let mut new_enum_decl = Vec::new();
-            new_enum_decl.push(enum_value);
+            let new_enum_decl = vec![enum_value];
             self.defined_enums.insert(enum_type, new_enum_decl);
-            return;
         }
     }
 
@@ -152,7 +136,7 @@ impl Model {
     pub fn add_structure_definition(
         &mut self,
         record_name: String,
-        record_args: &Vec<UniRecordArgVariant>,
+        record_args: &[UniRecordArgVariant],
     ) {
         // If no declaration exists for this record, create it
         if self.defined_records.get(&record_name).is_none() {
@@ -176,297 +160,314 @@ impl Model {
         let mut operation_parameters = Vec::new();
 
         for arg in record_args {
-            let parameter;
-            match arg {
-                UniRecordArgVariant::X8(arg) =>{
+            let parameter = match arg {
+                UniRecordArgVariant::X8(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::X8(OperationParameter {
+
+                    OperationParameterVariant::X8(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::X16(arg) =>{
+                UniRecordArgVariant::X16(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::X16(OperationParameter {
+
+                    OperationParameterVariant::X16(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::X32(arg) =>{
+                UniRecordArgVariant::X32(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::X32(OperationParameter {
+
+                    OperationParameterVariant::X32(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::X64(arg) =>{
+                UniRecordArgVariant::X64(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::X64(OperationParameter {
+
+                    OperationParameterVariant::X64(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::U8(arg) =>{
+                UniRecordArgVariant::U8(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::U8(OperationParameter {
+
+                    OperationParameterVariant::U8(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::U16(arg) =>{
+                UniRecordArgVariant::U16(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::U16(OperationParameter {
+
+                    OperationParameterVariant::U16(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::U32(arg) =>{
+                UniRecordArgVariant::U32(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::U32(OperationParameter {
+
+                    OperationParameterVariant::U32(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::U64(arg) =>{
+                UniRecordArgVariant::U64(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::U64(OperationParameter {
+
+                    OperationParameterVariant::U64(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::I8(arg) =>{
+                UniRecordArgVariant::I8(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::I8(OperationParameter {
+
+                    OperationParameterVariant::I8(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::I16(arg) =>{
+                UniRecordArgVariant::I16(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::I16(OperationParameter {
+
+                    OperationParameterVariant::I16(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::I32(arg) =>{
+                UniRecordArgVariant::I32(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::I32(OperationParameter {
+
+                    OperationParameterVariant::I32(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::I64(arg) =>{
+                UniRecordArgVariant::I64(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::I64(OperationParameter {
+
+                    OperationParameterVariant::I64(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
-                UniRecordArgVariant::F32(arg) =>{
+                UniRecordArgVariant::F32(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::F32(OperationParameter {
+
+                    OperationParameterVariant::F32(OperationParameter {
                         name: arg_name,
                         value: OrderedF32::from(arg_value),
-                    });
+                    })
                 }
-                UniRecordArgVariant::F64(arg) =>{
+                UniRecordArgVariant::F64(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::F64(OperationParameter {
+
+                    OperationParameterVariant::F64(OperationParameter {
                         name: arg_name,
                         value: OrderedF64::from(arg_value),
-                    });
+                    })
                 }
                 UniRecordArgVariant::ArrayOfX8(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::X8(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfX8(OperationParameter {
+                    OperationParameterVariant::ArrayOfX8(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
                 UniRecordArgVariant::ArrayOfX16(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::X16(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfX16(OperationParameter {
+                    OperationParameterVariant::ArrayOfX16(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
                 UniRecordArgVariant::ArrayOfX32(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::X32(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfX32(OperationParameter {
+                    OperationParameterVariant::ArrayOfX32(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
 
                 UniRecordArgVariant::ArrayOfX64(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::X64(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfX64(OperationParameter {
+                    OperationParameterVariant::ArrayOfX64(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
 
                 UniRecordArgVariant::ArrayOfU8(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::U8(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfU8(OperationParameter {
+                    OperationParameterVariant::ArrayOfU8(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
                 UniRecordArgVariant::ArrayOfU16(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::U16(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfU16(OperationParameter {
+                    OperationParameterVariant::ArrayOfU16(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
                 UniRecordArgVariant::ArrayOfU32(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::U32(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfU32(OperationParameter {
+                    OperationParameterVariant::ArrayOfU32(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
 
                 UniRecordArgVariant::ArrayOfU64(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::U64(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfU64(OperationParameter {
+                    OperationParameterVariant::ArrayOfU64(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
 
                 UniRecordArgVariant::ArrayOfI8(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::I8(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfI8(OperationParameter {
+                    OperationParameterVariant::ArrayOfI8(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
                 UniRecordArgVariant::ArrayOfI16(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::I16(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfI16(OperationParameter {
+                    OperationParameterVariant::ArrayOfI16(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
                 UniRecordArgVariant::ArrayOfI32(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::I32(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfI32(OperationParameter {
+                    OperationParameterVariant::ArrayOfI32(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
 
                 UniRecordArgVariant::ArrayOfI64(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
                     let array_instance = ArrayInstanceVariant::I64(arg_value);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfI64(OperationParameter {
+                    OperationParameterVariant::ArrayOfI64(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
 
                 UniRecordArgVariant::ArrayOfF32(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    let f32_array: Vec<OrderedF32> = arg_value.iter().map(|x| OrderedF32::from(*x)).collect();
+                    let f32_array: Vec<OrderedF32> =
+                        arg_value.iter().map(|x| OrderedF32::from(*x)).collect();
                     let array_instance = ArrayInstanceVariant::F32(f32_array);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfF32(OperationParameter {
+                    OperationParameterVariant::ArrayOfF32(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
 
                 UniRecordArgVariant::ArrayOfF64(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    let f64_array: Vec<OrderedF64> = arg_value.iter().map(|x| OrderedF64::from(*x)).collect();
+                    let f64_array: Vec<OrderedF64> =
+                        arg_value.iter().map(|x| OrderedF64::from(*x)).collect();
                     let array_instance = ArrayInstanceVariant::F64(f64_array);
                     let parameter_value = self.add_array_instance(array_instance);
-                    parameter = OperationParameterVariant::ArrayOfF64(OperationParameter {
+                    OperationParameterVariant::ArrayOfF64(OperationParameter {
                         name: arg_name,
                         value: parameter_value,
-                    });
+                    })
                 }
                 UniRecordArgVariant::Bool(arg) => {
                     let (arg_name, arg_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::Bool(OperationParameter {
+
+                    OperationParameterVariant::Bool(OperationParameter {
                         name: arg_name,
                         value: arg_value,
-                    });
+                    })
                 }
                 UniRecordArgVariant::Identifier(arg) => {
                     self.add_identifier_declaration(&arg);
                     let (enum_name, enum_type, enum_value) = arg.dissassemble();
-                    
-                    parameter = OperationParameterVariant::Identifier(IdentifierOperationParameter {
+
+                    OperationParameterVariant::Identifier(IdentifierOperationParameter {
                         name: enum_name,
                         enum_type,
                         value: enum_value,
-                    });
+                    })
                 }
-            }
+            };
             operation_parameters.push(parameter);
         }
 
         let operation = Operation {
-            operation_type: record_type.clone(), 
+            operation_type: record_type.clone(),
             parameters: operation_parameters,
         };
 
         let operation_instance_name;
-        if let Some(operation_instance_name_) = self.operation_instances.get_mut(&operation){
+        if let Some(operation_instance_name_) = self.operation_instances.get_mut(&operation) {
             operation_instance_name = operation_instance_name_.clone();
-        }
-        else{
-            operation_instance_name = String::from("operation_") + self.operation_instance_counter.to_string().as_str();
-            self.operation_instance_counter+=1;
-            self.operation_instances.insert(operation, operation_instance_name.clone());
+        } else {
+            operation_instance_name =
+                String::from("operation_") + self.operation_instance_counter.to_string().as_str();
+            self.operation_instance_counter += 1;
+            self.operation_instances
+                .insert(operation, operation_instance_name.clone());
         }
 
-        let operation_table_member = OperationTableMember{
+        let operation_table_member = OperationTableMember {
             operation_type: record_type,
-            operation_variant_ref_name: operation_instance_name
+            operation_variant_ref_name: operation_instance_name,
         };
 
         self.operation_ref_table.push(operation_table_member);
+    }
+}
+
+impl Default for Model {
+    fn default() -> Self {
+        Model {
+            sequence_name: None,
+            array_instance_counter: 0,
+            operation_instance_counter: 0,
+            defined_enums: IndexMap::new(),
+            defined_records: IndexMap::new(),
+            instanciated_arrays: IndexMap::new(),
+            operation_instances: IndexMap::new(),
+            operation_ref_table: Vec::new(),
+        }
     }
 }

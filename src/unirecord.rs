@@ -239,202 +239,170 @@ impl UniRecordArgVariant {
         if value_field.len() > 1 {
             let value_list: Vec<&str> = value_field[1].split(',').collect();
             match arg_type {
-                "x8" => {
-                    return Ok(UniRecordArgVariant::ArrayOfX8(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(index, v)| {
-                                let value = v.split('x').last().unwrap();
-                                u8::from_str_radix(value, 16).map_err(|e| {
-                                    RecordParsingError::BadX8ArrayFieldSyntax(e, index)
-                                })
-                            })
-                            .collect::<Result<Vec<u8>, RecordParsingError>>()?,
-                    }))
-                }
+                "x8" => Ok(UniRecordArgVariant::ArrayOfX8(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(index, v)| {
+                            let value = v.split('x').next_back().unwrap();
+                            u8::from_str_radix(value, 16)
+                                .map_err(|e| RecordParsingError::BadX8ArrayFieldSyntax(e, index))
+                        })
+                        .collect::<Result<Vec<u8>, RecordParsingError>>()?,
+                })),
 
-                "x16" => {
-                    return Ok(UniRecordArgVariant::ArrayOfX16(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(index, v)| {
-                                let value = v.split('x').last().unwrap();
-                                u16::from_str_radix(value, 16).map_err(|e| {
-                                    RecordParsingError::BadX16ArrayFieldSyntax(e, index)
-                                })
-                            })
-                            .collect::<Result<Vec<u16>, RecordParsingError>>()?,
-                    }))
-                }
+                "x16" => Ok(UniRecordArgVariant::ArrayOfX16(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(index, v)| {
+                            let value = v.split('x').next_back().unwrap();
+                            u16::from_str_radix(value, 16)
+                                .map_err(|e| RecordParsingError::BadX16ArrayFieldSyntax(e, index))
+                        })
+                        .collect::<Result<Vec<u16>, RecordParsingError>>()?,
+                })),
 
-                "x32" => {
-                    return Ok(UniRecordArgVariant::ArrayOfX32(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(index, v)| {
-                                let value = v.split('x').last().unwrap();
-                                u32::from_str_radix(value, 16).map_err(|e| {
-                                    RecordParsingError::BadX32ArrayFieldSyntax(e, index)
-                                })
-                            })
-                            .collect::<Result<Vec<u32>, RecordParsingError>>()?,
-                    }))
-                }
+                "x32" => Ok(UniRecordArgVariant::ArrayOfX32(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(index, v)| {
+                            let value = v.split('x').next_back().unwrap();
+                            u32::from_str_radix(value, 16)
+                                .map_err(|e| RecordParsingError::BadX32ArrayFieldSyntax(e, index))
+                        })
+                        .collect::<Result<Vec<u32>, RecordParsingError>>()?,
+                })),
 
-                "x64" => {
-                    return Ok(UniRecordArgVariant::ArrayOfX64(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(index, v)| {
-                                let value = v.split('x').last().unwrap();
-                                u64::from_str_radix(value, 16).map_err(|e| {
-                                    RecordParsingError::BadX64ArrayFieldSyntax(e, index)
-                                })
-                            })
-                            .collect::<Result<Vec<u64>, RecordParsingError>>()?,
-                    }))
-                }
+                "x64" => Ok(UniRecordArgVariant::ArrayOfX64(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(index, v)| {
+                            let value = v.split('x').next_back().unwrap();
+                            u64::from_str_radix(value, 16)
+                                .map_err(|e| RecordParsingError::BadX64ArrayFieldSyntax(e, index))
+                        })
+                        .collect::<Result<Vec<u64>, RecordParsingError>>()?,
+                })),
 
-                "u8" => {
-                    return Ok(UniRecordArgVariant::ArrayOfU8(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(i, v)| {
-                                v.parse()
-                                    .map_err(|e| RecordParsingError::BadU8ArrayFieldSyntax(e, i))
-                            })
-                            .collect::<Result<Vec<u8>, RecordParsingError>>()?,
-                    }))
-                }
-                "i8" => {
-                    return Ok(UniRecordArgVariant::ArrayOfI8(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(i, v)| {
-                                v.parse()
-                                    .map_err(|e| RecordParsingError::BadI8ArrayFieldSyntax(e, i))
-                            })
-                            .collect::<Result<Vec<i8>, RecordParsingError>>()?,
-                    }))
-                }
-                "u16" => {
-                    return Ok(UniRecordArgVariant::ArrayOfU16(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(i, v)| {
-                                v.parse()
-                                    .map_err(|e| RecordParsingError::BadU16ArrayFieldSyntax(e, i))
-                            })
-                            .collect::<Result<Vec<u16>, RecordParsingError>>()?,
-                    }))
-                }
-                "i16" => {
-                    return Ok(UniRecordArgVariant::ArrayOfI16(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(i, v)| {
-                                v.parse()
-                                    .map_err(|e| RecordParsingError::BadI16ArrayFieldSyntax(e, i))
-                            })
-                            .collect::<Result<Vec<i16>, RecordParsingError>>()?,
-                    }))
-                }
-                "u32" => {
-                    return Ok(UniRecordArgVariant::ArrayOfU32(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(i, v)| {
-                                v.parse()
-                                    .map_err(|e| RecordParsingError::BadU32ArrayFieldSyntax(e, i))
-                            })
-                            .collect::<Result<Vec<u32>, RecordParsingError>>()?,
-                    }))
-                }
-                "i32" => {
-                    return Ok(UniRecordArgVariant::ArrayOfI32(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(i, v)| {
-                                v.parse()
-                                    .map_err(|e| RecordParsingError::BadI32ArrayFieldSyntax(e, i))
-                            })
-                            .collect::<Result<Vec<i32>, RecordParsingError>>()?,
-                    }))
-                }
-                "u64" => {
-                    return Ok(UniRecordArgVariant::ArrayOfU64(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(i, v)| {
-                                v.parse()
-                                    .map_err(|e| RecordParsingError::BadU64ArrayFieldSyntax(e, i))
-                            })
-                            .collect::<Result<Vec<u64>, RecordParsingError>>()?,
-                    }))
-                }
-                "i64" => {
-                    return Ok(UniRecordArgVariant::ArrayOfI64(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(i, v)| {
-                                v.parse()
-                                    .map_err(|e| RecordParsingError::BadI64ArrayFieldSyntax(e, i))
-                            })
-                            .collect::<Result<Vec<i64>, RecordParsingError>>()?,
-                    }))
-                }
-                "f32" => {
-                    return Ok(UniRecordArgVariant::ArrayOfF32(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(i, v)| {
-                                v.parse()
-                                    .map_err(|e| RecordParsingError::BadF32ArrayFieldSyntax(e, i))
-                            })
-                            .collect::<Result<Vec<f32>, RecordParsingError>>()?,
-                    }))
-                }
-                "f64" => {
-                    return Ok(UniRecordArgVariant::ArrayOfF64(UniRecordArg {
-                        name: record_arg_name,
-                        value: value_list
-                            .iter()
-                            .enumerate()
-                            .map(|(i, v)| {
-                                v.parse()
-                                    .map_err(|e| RecordParsingError::BadF64ArrayFieldSyntax(e, i))
-                            })
-                            .collect::<Result<Vec<f64>, RecordParsingError>>()?,
-                    }))
-                }
+                "u8" => Ok(UniRecordArgVariant::ArrayOfU8(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| {
+                            v.parse()
+                                .map_err(|e| RecordParsingError::BadU8ArrayFieldSyntax(e, i))
+                        })
+                        .collect::<Result<Vec<u8>, RecordParsingError>>()?,
+                })),
+                "i8" => Ok(UniRecordArgVariant::ArrayOfI8(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| {
+                            v.parse()
+                                .map_err(|e| RecordParsingError::BadI8ArrayFieldSyntax(e, i))
+                        })
+                        .collect::<Result<Vec<i8>, RecordParsingError>>()?,
+                })),
+                "u16" => Ok(UniRecordArgVariant::ArrayOfU16(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| {
+                            v.parse()
+                                .map_err(|e| RecordParsingError::BadU16ArrayFieldSyntax(e, i))
+                        })
+                        .collect::<Result<Vec<u16>, RecordParsingError>>()?,
+                })),
+                "i16" => Ok(UniRecordArgVariant::ArrayOfI16(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| {
+                            v.parse()
+                                .map_err(|e| RecordParsingError::BadI16ArrayFieldSyntax(e, i))
+                        })
+                        .collect::<Result<Vec<i16>, RecordParsingError>>()?,
+                })),
+                "u32" => Ok(UniRecordArgVariant::ArrayOfU32(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| {
+                            v.parse()
+                                .map_err(|e| RecordParsingError::BadU32ArrayFieldSyntax(e, i))
+                        })
+                        .collect::<Result<Vec<u32>, RecordParsingError>>()?,
+                })),
+                "i32" => Ok(UniRecordArgVariant::ArrayOfI32(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| {
+                            v.parse()
+                                .map_err(|e| RecordParsingError::BadI32ArrayFieldSyntax(e, i))
+                        })
+                        .collect::<Result<Vec<i32>, RecordParsingError>>()?,
+                })),
+                "u64" => Ok(UniRecordArgVariant::ArrayOfU64(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| {
+                            v.parse()
+                                .map_err(|e| RecordParsingError::BadU64ArrayFieldSyntax(e, i))
+                        })
+                        .collect::<Result<Vec<u64>, RecordParsingError>>()?,
+                })),
+                "i64" => Ok(UniRecordArgVariant::ArrayOfI64(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| {
+                            v.parse()
+                                .map_err(|e| RecordParsingError::BadI64ArrayFieldSyntax(e, i))
+                        })
+                        .collect::<Result<Vec<i64>, RecordParsingError>>()?,
+                })),
+                "f32" => Ok(UniRecordArgVariant::ArrayOfF32(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| {
+                            v.parse()
+                                .map_err(|e| RecordParsingError::BadF32ArrayFieldSyntax(e, i))
+                        })
+                        .collect::<Result<Vec<f32>, RecordParsingError>>()?,
+                })),
+                "f64" => Ok(UniRecordArgVariant::ArrayOfF64(UniRecordArg {
+                    name: record_arg_name,
+                    value: value_list
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| {
+                            v.parse()
+                                .map_err(|e| RecordParsingError::BadF64ArrayFieldSyntax(e, i))
+                        })
+                        .collect::<Result<Vec<f64>, RecordParsingError>>()?,
+                })),
                 &_ => panic!("Record argument is an array of unknown type"),
-            };
+            }
         } else {
             let value = value_field[0];
             match arg_type {
@@ -444,147 +412,107 @@ impl UniRecordArgVariant {
                         return Err(RecordParsingError::BadIdFormat());
                     }
 
-                    return Ok(UniRecordArgVariant::Identifier(IdentifierRecordArg {
+                    Ok(UniRecordArgVariant::Identifier(IdentifierRecordArg {
                         name: record_arg_name,
                         enum_type: tokens[0].to_string(),
                         value: tokens[1].to_string(),
-                    }));
+                    }))
                 }
                 "x8" => {
-                    let value = value.split('x').last().unwrap();
-                    let value = u8::from_str_radix(value, 16)
-                        .map_err(|e| RecordParsingError::BadX8Format(e))?;
+                    let value = value.split('x').next_back().unwrap();
+                    let value =
+                        u8::from_str_radix(value, 16).map_err(RecordParsingError::BadX8Format)?;
 
-                    return Ok(UniRecordArgVariant::X8(UniRecordArg {
+                    Ok(UniRecordArgVariant::X8(UniRecordArg {
                         name: record_arg_name,
                         value,
-                    }));
+                    }))
                 }
                 "x16" => {
-                    let value = value.split('x').last().unwrap();
-                    let value = u16::from_str_radix(value, 16)
-                        .map_err(|e| RecordParsingError::BadX16Format(e))?;
+                    let value = value.split('x').next_back().unwrap();
+                    let value =
+                        u16::from_str_radix(value, 16).map_err(RecordParsingError::BadX16Format)?;
 
-                    return Ok(UniRecordArgVariant::X16(UniRecordArg {
+                    Ok(UniRecordArgVariant::X16(UniRecordArg {
                         name: record_arg_name,
                         value,
-                    }));
+                    }))
                 }
                 "x32" => {
-                    let value = value.split('x').last().unwrap();
-                    let value = u32::from_str_radix(value, 16)
-                        .map_err(|e| RecordParsingError::BadX32Format(e))?;
+                    let value = value.split('x').next_back().unwrap();
+                    let value =
+                        u32::from_str_radix(value, 16).map_err(RecordParsingError::BadX32Format)?;
 
-                    return Ok(UniRecordArgVariant::X32(UniRecordArg {
+                    Ok(UniRecordArgVariant::X32(UniRecordArg {
                         name: record_arg_name,
                         value,
-                    }));
+                    }))
                 }
                 "x64" => {
-                    let value = value.split('x').last().unwrap();
-                    let value = u64::from_str_radix(value, 16)
-                        .map_err(|e| RecordParsingError::BadX64Format(e))?;
+                    let value = value.split('x').next_back().unwrap();
+                    let value =
+                        u64::from_str_radix(value, 16).map_err(RecordParsingError::BadX64Format)?;
 
-                    return Ok(UniRecordArgVariant::X64(UniRecordArg {
+                    Ok(UniRecordArgVariant::X64(UniRecordArg {
                         name: record_arg_name,
                         value,
-                    }));
+                    }))
                 }
 
-                "u8" => {
-                    return Ok(UniRecordArgVariant::U8(UniRecordArg {
-                        name: record_arg_name,
-                        value: value
-                            .parse()
-                            .map_err(|e| RecordParsingError::BadU8Format(e))?,
-                    }))
-                }
-                "i8" => {
-                    return Ok(UniRecordArgVariant::I8(UniRecordArg {
-                        name: record_arg_name,
-                        value: value
-                            .parse()
-                            .map_err(|e| RecordParsingError::BadI8Format(e))?,
-                    }))
-                }
-                "u16" => {
-                    return Ok(UniRecordArgVariant::U16(UniRecordArg {
-                        name: record_arg_name,
-                        value: value
-                            .parse()
-                            .map_err(|e| RecordParsingError::BadU16Format(e))?,
-                    }))
-                }
-                "i16" => {
-                    return Ok(UniRecordArgVariant::I16(UniRecordArg {
-                        name: record_arg_name,
-                        value: value
-                            .parse()
-                            .map_err(|e| RecordParsingError::BadI16Format(e))?,
-                    }))
-                }
-                "u32" => {
-                    return Ok(UniRecordArgVariant::U32(UniRecordArg {
-                        name: record_arg_name,
-                        value: value
-                            .parse()
-                            .map_err(|e| RecordParsingError::BadU32Format(e))?,
-                    }))
-                }
-                "i32" => {
-                    return Ok(UniRecordArgVariant::I32(UniRecordArg {
-                        name: record_arg_name,
-                        value: value
-                            .parse()
-                            .map_err(|e| RecordParsingError::BadI32Format(e))?,
-                    }))
-                }
-                "u64" => {
-                    return Ok(UniRecordArgVariant::U64(UniRecordArg {
-                        name: record_arg_name,
-                        value: value
-                            .parse()
-                            .map_err(|e| RecordParsingError::BadU64Format(e))?,
-                    }))
-                }
-                "i64" => {
-                    return Ok(UniRecordArgVariant::I64(UniRecordArg {
-                        name: record_arg_name,
-                        value: value
-                            .parse()
-                            .map_err(|e| RecordParsingError::BadI64Format(e))?,
-                    }))
-                }
-                "f32" => {
-                    return Ok(UniRecordArgVariant::F32(UniRecordArg {
-                        name: record_arg_name,
-                        value: value
-                            .parse()
-                            .map_err(|e| RecordParsingError::BadF32Format(e))?,
-                    }))
-                }
-                "f64" => {
-                    return Ok(UniRecordArgVariant::F64(UniRecordArg {
-                        name: record_arg_name,
-                        value: value
-                            .parse()
-                            .map_err(|e| RecordParsingError::BadF64Format(e))?,
-                    }))
-                }
+                "u8" => Ok(UniRecordArgVariant::U8(UniRecordArg {
+                    name: record_arg_name,
+                    value: value.parse().map_err(RecordParsingError::BadU8Format)?,
+                })),
+                "i8" => Ok(UniRecordArgVariant::I8(UniRecordArg {
+                    name: record_arg_name,
+                    value: value.parse().map_err(RecordParsingError::BadI8Format)?,
+                })),
+                "u16" => Ok(UniRecordArgVariant::U16(UniRecordArg {
+                    name: record_arg_name,
+                    value: value.parse().map_err(RecordParsingError::BadU16Format)?,
+                })),
+                "i16" => Ok(UniRecordArgVariant::I16(UniRecordArg {
+                    name: record_arg_name,
+                    value: value.parse().map_err(RecordParsingError::BadI16Format)?,
+                })),
+                "u32" => Ok(UniRecordArgVariant::U32(UniRecordArg {
+                    name: record_arg_name,
+                    value: value.parse().map_err(RecordParsingError::BadU32Format)?,
+                })),
+                "i32" => Ok(UniRecordArgVariant::I32(UniRecordArg {
+                    name: record_arg_name,
+                    value: value.parse().map_err(RecordParsingError::BadI32Format)?,
+                })),
+                "u64" => Ok(UniRecordArgVariant::U64(UniRecordArg {
+                    name: record_arg_name,
+                    value: value.parse().map_err(RecordParsingError::BadU64Format)?,
+                })),
+                "i64" => Ok(UniRecordArgVariant::I64(UniRecordArg {
+                    name: record_arg_name,
+                    value: value.parse().map_err(RecordParsingError::BadI64Format)?,
+                })),
+                "f32" => Ok(UniRecordArgVariant::F32(UniRecordArg {
+                    name: record_arg_name,
+                    value: value.parse().map_err(RecordParsingError::BadF32Format)?,
+                })),
+                "f64" => Ok(UniRecordArgVariant::F64(UniRecordArg {
+                    name: record_arg_name,
+                    value: value.parse().map_err(RecordParsingError::BadF64Format)?,
+                })),
                 "bool" => {
                     let bool_value;
                     if let Ok(value) = value.parse::<bool>() {
                         bool_value = value;
                     } else {
-                        let value = value.split('x').last().unwrap();
+                        let value = value.split('x').next_back().unwrap();
                         let value = u64::from_str_radix(value, 16)
                             .map_err(|_| RecordParsingError::BadBoolFormat())?;
                         bool_value = value != 0;
                     }
-                    return Ok(UniRecordArgVariant::Bool(UniRecordArg {
+                    Ok(UniRecordArgVariant::Bool(UniRecordArg {
                         name: record_arg_name,
                         value: bool_value,
-                    }));
+                    }))
                 }
 
                 &_ => panic!("Unhandled record argument type !"),
@@ -605,11 +533,11 @@ impl UniRecord {
     }
 
     pub fn name(&self) -> &String {
-        return &self.name;
+        &self.name
     }
 
     pub fn args(&self) -> &Vec<UniRecordArgVariant> {
-        return &self.args;
+        &self.args
     }
 
     pub fn dissassemble(self) -> (String, Vec<UniRecordArgVariant>) {
@@ -711,14 +639,14 @@ mod test {
             UniRecordArgVariant::from("test_val:", "f32(-40525.1740)"),
             Ok(UniRecordArgVariant::F32(UniRecordArg {
                 name: String::from("test_val"),
-                value: -40525.1740
+                value: -40_525.176
             }))
         );
         assert_eq!(
             UniRecordArgVariant::from("test-val:", "f64(-8540565256.5187840)"),
             Ok(UniRecordArgVariant::F64(UniRecordArg {
                 name: String::from("test-val"),
-                value: -8540565256.5187840
+                value: -8_540_565_256.518_784
             }))
         );
         assert_eq!(

@@ -105,6 +105,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
+name = "copar"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "noindexmap",
+ "ordered-float",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -164,15 +173,6 @@ checksum = "7eb5259643245d3f292c7a146b2df53bba24d7eab159410e648eb73dc164669d"
 dependencies = [
  "num-traits 0.1.43",
  "unreachable",
-]
-
-[[package]]
-name = "playdisc_generator"
-version = "0.1.0"
-dependencies = [
- "clap",
- "noindexmap",
- "ordered-float",
 ]
 
 [[package]]

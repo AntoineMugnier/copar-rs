@@ -1,3 +1,4 @@
+use crate::model;
 use crate::{model::Model, unirecord::RecordParsingError};
 use std::io::Read;
 use std::str::Lines;
@@ -13,7 +14,7 @@ enum RecordCapturingState {
 type ParserResult<T> = Result<T, LineParsingError>;
 
 #[derive(Debug)]
-pub enum LineParsingError{
+pub enum LineParsingError {
     MultipleRecordDelimiters(String),
     UnmatchedNameSequenceStop(Box<(String, String)>),
     BadRecordArg(RecordParsingError),
@@ -28,14 +29,14 @@ pub enum LineParsingError{
 
 type FileParsingResult<T> = Result<T, FileParsingError>;
 #[derive(Debug)]
-pub enum FileParsingError{
+pub enum FileParsingError {
     LineError {
         line_nb: usize,
         line_error: LineParsingError,
     },
     NoSequenceStart,
-    NoSequenceEnd{
-        last_record_start_line: usize
+    NoSequenceEnd {
+        last_record_start_line: usize,
     },
 }
 
@@ -57,7 +58,7 @@ impl Parser {
         Parser {
             sequence_name: String::new(),
             input_file_buffer: Some(input_file_buffer),
-            model: Model::new(),
+            model: model::Model::default(),
             capturing_state: RecordCapturingState::OneShot,
             last_record_start_line: 0,
             current_line: 0,
@@ -83,7 +84,7 @@ impl Parser {
             let arg_name = arg[0];
             let arg_val = arg[1];
             let uni_record_arg = UniRecordArgVariant::from(arg_name, arg_val)
-                .map_err(|e| LineParsingError::BadRecordArg(e))?;
+                .map_err(LineParsingError::BadRecordArg)?;
             uni_record_args.push(uni_record_arg);
         }
         Ok(uni_record_args)
@@ -91,58 +92,56 @@ impl Parser {
 
     fn parse_line_buffer(&mut self) -> ParserResult<()> {
         let record_str_vec: Vec<&str> = self.line_buffer.splitn(2, ' ').collect();
-            let name = String::from(record_str_vec[0]);
-            let mut args = Vec::new();
-            if record_str_vec.len() >= 2{
-                args = Self::parse_record_args(record_str_vec[1])?;
-            }
+        let name = String::from(record_str_vec[0]);
+        let mut args = Vec::new();
+        if record_str_vec.len() >= 2 {
+            args = Self::parse_record_args(record_str_vec[1])?;
+        }
 
-            let uni_record = UniRecord::new(name, args);
-            self.model.add_record(uni_record);
+        let uni_record = UniRecord::new(name, args);
+        self.model.add_record(uni_record);
         Ok(())
     }
-     
-    fn one_shot_state<'a>(&mut self, mut line: &'a str) -> ParserResult<bool> {
+
+    fn one_shot_state(&mut self, mut line: &str) -> ParserResult<bool> {
         let res = Self::get_delimited_content(&mut line);
         let mut is_end_of_sequence = false;
-        match res{
-            Ok(delimiter_token_char) =>{
-                match delimiter_token_char {
-                    '=' => {
-                        self.last_record_start_line = self.current_line;
-                        self.line_buffer = line.to_string();
-                        self.parse_line_buffer()?;
-                    },
-                    '[' => {
-                        self.last_record_start_line = self.current_line;
-                        self.line_buffer = line.to_string();
-                        self.capturing_state = RecordCapturingState::Ranged;
-                    }
-                    '>' =>{
-                            let read_sequence_name = line;
-                            if read_sequence_name != self.sequence_name {
-                                return Err(LineParsingError::UnmatchedNameSequenceStop(Box::new((
-                                    String::from(read_sequence_name),
-                                    self.sequence_name.clone(),
-                                ))));
-                            }
-                            is_end_of_sequence = true;
-                        }
-                    _ => ()
+        match res {
+            Ok(delimiter_token_char) => match delimiter_token_char {
+                '=' => {
+                    self.last_record_start_line = self.current_line;
+                    self.line_buffer = line.to_string();
+                    self.parse_line_buffer()?;
                 }
-            }
-            Err(LineParsingError::MissingEndDelimiter(delimiter_token_char)) =>{
+                '[' => {
+                    self.last_record_start_line = self.current_line;
+                    self.line_buffer = line.to_string();
+                    self.capturing_state = RecordCapturingState::Ranged;
+                }
+                '>' => {
+                    let read_sequence_name = line;
+                    if read_sequence_name != self.sequence_name {
+                        return Err(LineParsingError::UnmatchedNameSequenceStop(Box::new((
+                            String::from(read_sequence_name),
+                            self.sequence_name.clone(),
+                        ))));
+                    }
+                    is_end_of_sequence = true;
+                }
+                _ => (),
+            },
+            Err(LineParsingError::MissingEndDelimiter(delimiter_token_char)) => {
                 match delimiter_token_char {
                     '=' => {
                         self.line_buffer = line.to_string();
                         self.capturing_state = RecordCapturingState::Multiline;
                     }
                     '[' => return Err(LineParsingError::MissingEndDelimiter(delimiter_token_char)),
-                    _ => ()
+                    _ => (),
                 }
-            },
-            Err(LineParsingError::UnparsableLine) =>(),
-            Err(e) => return Err(e)
+            }
+            Err(LineParsingError::UnparsableLine) => (),
+            Err(e) => return Err(e),
         }
 
         Ok(is_end_of_sequence)
@@ -150,50 +149,44 @@ impl Parser {
 
     fn multiline_capture_state(&mut self, mut line: &str) -> ParserResult<()> {
         let res = Self::get_delimited_content(&mut line);
-        match res{
-            Ok(delimiter_token_char) =>{
-                match delimiter_token_char {
-                    '=' =>{
-                        // Add space if last line was uncut
-                        if self.line_buffer.chars().last().unwrap() == ')' {
-                            self.line_buffer += " ";
-                        }
-                        self.line_buffer += line;
-                        self.parse_line_buffer()?;
-                        self.capturing_state = RecordCapturingState::OneShot;
+        match res {
+            Ok(delimiter_token_char) => {
+                if let '=' = delimiter_token_char {
+                    // Add space if last line was uncut
+                    if self.line_buffer.ends_with(')') {
+                        self.line_buffer += " ";
                     }
-                    _ => ()
+                    self.line_buffer += line;
+                    self.parse_line_buffer()?;
+                    self.capturing_state = RecordCapturingState::OneShot;
                 }
             }
-            Err(LineParsingError::MissingBeginDelimiter(delimiter_token_char)) =>{
-                match delimiter_token_char {
-                    '=' => {
-                        // Add space if last line was uncut
-                        if self.line_buffer.chars().last().unwrap() == ')' {
-                            self.line_buffer += " ";
-                        }
-                        self.line_buffer += line;
-                        self.parse_line_buffer()?;
-                        self.capturing_state = RecordCapturingState::OneShot;
+            Err(LineParsingError::MissingBeginDelimiter(delimiter_token_char)) => {
+                if let '=' = delimiter_token_char {
+                    // Add space if last line was uncut
+                    if self.line_buffer.ends_with(')') {
+                        self.line_buffer += " ";
                     }
-                    _ => ()
+                    self.line_buffer += line;
+                    self.parse_line_buffer()?;
+                    self.capturing_state = RecordCapturingState::OneShot;
                 }
-            },
+            }
             Err(LineParsingError::UnparsableLine) => {
                 // Add space if last line was uncut
-                if self.line_buffer.chars().last().unwrap() == ')' {
+                if self.line_buffer.ends_with(')') {
                     self.line_buffer += " ";
                 }
                 self.line_buffer += line;
-            },
+            }
             Err(e) => return Err(e),
         }
 
         Ok(())
     }
 
-    fn compare_record_name_to_ref(&mut self, line: &mut &str) -> ParserResult<()>{
-        let tokens : Vec<&str> = line.splitn(2," ").collect();
+    fn compare_record_name_to_ref(&mut self, line: &mut &str) -> ParserResult<()> {
+        let tokens: Vec<&str> = line.splitn(2, " ").collect();
         let record_name = tokens[0];
         let previous_record_name = self.line_buffer.split(" ").next().unwrap();
         if record_name != previous_record_name {
@@ -202,7 +195,7 @@ impl Parser {
                 record_name.to_string(),
             ))));
         }
-        if tokens.len() == 2{
+        if tokens.len() == 2 {
             *line = tokens[1];
         }
         Ok(())
@@ -210,36 +203,32 @@ impl Parser {
 
     fn ranged_capture_state(&mut self, mut line: &str) -> ParserResult<()> {
         let res = Self::get_delimited_content(&mut line);
-        
-        match res{
-            Ok(delimiter_token_char) =>{
-                match delimiter_token_char {
-                    '-' =>{
-                        if let Ok(()) = self.compare_record_name_to_ref(&mut line){
-                            self.line_buffer += " ";
-                            self.line_buffer += line;
-                        }
+
+        if let Ok(delimiter_token_char) = res {
+            match delimiter_token_char {
+                '-' => {
+                    if let Ok(()) = self.compare_record_name_to_ref(&mut line) {
+                        self.line_buffer += " ";
+                        self.line_buffer += line;
                     }
-                    ']' =>{
-                        if let Ok(()) = self.compare_record_name_to_ref(&mut line){
-                            self.capturing_state = RecordCapturingState::OneShot;
-                            self.parse_line_buffer()?;
-                        }
-                    }
-                    _ => ()
                 }
+                ']' => {
+                    if let Ok(()) = self.compare_record_name_to_ref(&mut line) {
+                        self.capturing_state = RecordCapturingState::OneShot;
+                        self.parse_line_buffer()?;
+                    }
+                }
+                _ => (),
             }
-            Err(_) => (), // Ignore all other lines in this state
         }
         Ok(())
     }
 
-
-    fn get_delimited_content<'a>(line_content:&mut  &'a str) -> ParserResult<char> {
+    fn get_delimited_content(line_content: &mut &str) -> ParserResult<char> {
         let mut has_begin_token = false;
         let mut has_end_token = false;
-        let mut begin_delimiter_token_char =' ';
-        let mut end_delimiter_token_char =' ';
+        let mut begin_delimiter_token_char = ' ';
+        let mut end_delimiter_token_char = ' ';
         let mut range_index_start = 0;
         let mut range_index_stop = line_content.len();
 
@@ -249,7 +238,7 @@ impl Parser {
         if begin_delimiter_tokens.len() == 2 {
             let delimiter_token = begin_delimiter_tokens[1];
             if delimiter_token.chars().count() == 1 {
-                range_index_start += begin_delimiter.len() +1;
+                range_index_start += begin_delimiter.len() + 1;
                 begin_delimiter_token_char = delimiter_token.chars().next().unwrap();
                 has_begin_token = true;
             }
@@ -267,33 +256,40 @@ impl Parser {
         }
 
         let result_line = &line_content[range_index_start..range_index_stop];
-       match (has_begin_token, has_end_token) {
-            (false, false) => return Err(LineParsingError::UnparsableLine),
+        match (has_begin_token, has_end_token) {
+            (false, false) => Err(LineParsingError::UnparsableLine),
             (false, true) => {
                 *line_content = result_line;
-                return Err(LineParsingError::MissingBeginDelimiter(end_delimiter_token_char));
+                Err(LineParsingError::MissingBeginDelimiter(
+                    end_delimiter_token_char,
+                ))
             }
-            (true, false) =>{
+            (true, false) => {
                 *line_content = result_line;
-                 return Err(LineParsingError::MissingEndDelimiter(begin_delimiter_token_char));
+                Err(LineParsingError::MissingEndDelimiter(
+                    begin_delimiter_token_char,
+                ))
             }
             (true, true) => {
                 *line_content = result_line;
-                if begin_delimiter_token_char != end_delimiter_token_char{
-                    return Err(LineParsingError::UnmatchingRecordDelimiters(begin_delimiter_token_char, end_delimiter_token_char));
+                if begin_delimiter_token_char != end_delimiter_token_char {
+                    return Err(LineParsingError::UnmatchingRecordDelimiters(
+                        begin_delimiter_token_char,
+                        end_delimiter_token_char,
+                    ));
                 }
-                return Ok(begin_delimiter_token_char)
+                Ok(begin_delimiter_token_char)
             }
-        } 
+        }
     }
 
-    fn move_to_begin_token<'a>(
-        lines: &'a mut Lines,
+    fn move_to_begin_token(
+        lines: &mut Lines,
         line_index_ref: &mut usize,
     ) -> FileParsingResult<String> {
         for (line_index, mut line_content) in lines.enumerate() {
             Self::remove_timestamp(&mut line_content);
-            if line_content.len() > 0 {
+            if !line_content.is_empty() {
                 let res = Self::get_delimited_content(&mut line_content);
                 match res {
                     Ok(delimiter_char) => {
@@ -327,16 +323,13 @@ impl Parser {
             self.current_line = line_index + line_index_offset + 1;
             Self::remove_timestamp(&mut line_content);
 
-            if line_content.len() > 0 {
-
+            if !line_content.is_empty() {
                 let res = match self.capturing_state {
                     RecordCapturingState::OneShot => {
                         let line_parsing_err = self.one_shot_state(line_content);
-                        line_parsing_err.map(|end_of_parsing_| { end_of_parsing = end_of_parsing_})
+                        line_parsing_err.map(|end_of_parsing_| end_of_parsing = end_of_parsing_)
                     }
-                    RecordCapturingState::Multiline => {
-                        self.multiline_capture_state(line_content)
-                    }
+                    RecordCapturingState::Multiline => self.multiline_capture_state(line_content),
 
                     RecordCapturingState::Ranged => self.ranged_capture_state(line_content),
                 };
@@ -345,13 +338,15 @@ impl Parser {
                     line_nb: self.current_line,
                     line_error: e,
                 })?;
-                
+
                 if end_of_parsing {
                     self.model.set_sequence_name(self.sequence_name);
                     return Ok(self.model);
                 }
             }
         }
-        return Err(FileParsingError::NoSequenceEnd{ last_record_start_line: self.last_record_start_line});
+        Err(FileParsingError::NoSequenceEnd {
+            last_record_start_line: self.last_record_start_line,
+        })
     }
 }
