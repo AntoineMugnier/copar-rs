@@ -3,7 +3,7 @@ use crate::{
     unirecord::{IdentifierRecordArg, MemberType, UniRecord, UniRecordArgVariant},
 };
 use indexmap::IndexMap;
-use std::{fs::File, hash::Hash};
+use std::{hash::Hash, io};
 
 use ordered_float::OrderedFloat;
 type OrderedF32 = OrderedFloat<f32>;
@@ -111,7 +111,7 @@ impl Model {
         self.sequence_name = Some(sequence_name);
     }
 
-    pub fn parse(input_file: File) -> Result<Model, FileParsingError> {
+    pub fn parse(input_file: impl io::Read) -> Result<Model, FileParsingError> {
         let parser = Parser::new(input_file);
         parser.parse_file()
     }

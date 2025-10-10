@@ -1,8 +1,7 @@
 use crate::model;
 use crate::{model::Model, unirecord::RecordParsingError};
-use std::io::Read;
+use std::char;
 use std::str::Lines;
-use std::{char, fs::File};
 
 use crate::unirecord::{UniRecord, UniRecordArgVariant};
 enum RecordCapturingState {
@@ -53,7 +52,7 @@ pub struct Parser {
 
 impl Parser {
     // Instanciate this structure with the log file containing the copar records
-    pub fn new(mut input_file: File) -> Parser {
+    pub fn new(mut input_file: impl std::io::Read) -> Parser {
         let mut input_file_buffer = String::new();
         input_file.read_to_string(&mut input_file_buffer).unwrap();
 
