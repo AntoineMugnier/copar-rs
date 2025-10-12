@@ -31,6 +31,31 @@ pub(crate) fn pascal_to_snake_case(input: &str) -> String {
 
     result
 }
+pub fn to_snake_case(s: &str) -> String {
+    // Simple snake_case: replace '-' with '_', lowercase, and insert '_' before uppercase letters
+    let mut out = String::new();
+    let mut prev_lower = false;
+    for ch in s.chars() {
+        if ch == '-' {
+            out.push('_');
+            prev_lower = false;
+            continue;
+        }
+        if ch.is_uppercase() {
+            if prev_lower {
+                out.push('_');
+            }
+            for lc in ch.to_lowercase() {
+                out.push(lc);
+            }
+            prev_lower = false;
+        } else {
+            out.push(ch);
+            prev_lower = true;
+        }
+    }
+    out
+}
 pub(crate) fn pascal_to_macro_case(input: &str) -> String {
     let mut result = String::new();
 
@@ -47,4 +72,3 @@ pub(crate) fn pascal_to_macro_case(input: &str) -> String {
 
     result
 }
-
