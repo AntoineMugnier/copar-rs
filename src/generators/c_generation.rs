@@ -11,20 +11,20 @@ mod private {
     use crate::unirecord::MemberType;
 
     pub trait Sealed {
-        fn generate_c_header(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_header_pre(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_header_post(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_operation_id_enum(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_operation_variants_definition(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_operation_definition(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_enum_definitions(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_struct_definitions(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_operation_list(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_array_instances(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_operation_instances(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_source_pre(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_source_post(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_c_source(&mut self, output_file: &mut impl std::io::Write);
+        fn generate_c_header(&self, output_file: &mut impl std::io::Write);
+        fn generate_header_pre(&self, output_file: &mut impl std::io::Write);
+        fn generate_header_post(&self, output_file: &mut impl std::io::Write);
+        fn generate_operation_id_enum(&self, output_file: &mut impl std::io::Write);
+        fn generate_operation_variants_definition(&self, output_file: &mut impl std::io::Write);
+        fn generate_operation_definition(&self, output_file: &mut impl std::io::Write);
+        fn generate_enum_definitions(&self, output_file: &mut impl std::io::Write);
+        fn generate_struct_definitions(&self, output_file: &mut impl std::io::Write);
+        fn generate_operation_list(&self, output_file: &mut impl std::io::Write);
+        fn generate_array_instances(&self, output_file: &mut impl std::io::Write);
+        fn generate_operation_instances(&self, output_file: &mut impl std::io::Write);
+        fn generate_source_pre(&self, output_file: &mut impl std::io::Write);
+        fn generate_source_post(&self, output_file: &mut impl std::io::Write);
+        fn generate_c_source(&self, output_file: &mut impl std::io::Write);
         fn member_type_to_c_type_string(member_type: &MemberType) -> String;
         fn fmt_c_array_value<T, F: Fn(&T) -> String>(array: &[T], format_function: F) -> String;
         fn fmt_array_instance(
@@ -40,7 +40,7 @@ use private::Sealed;
 /// Trait allowing copar model to generate C code
 pub trait CGeneration: private::Sealed {
     fn compute_to_c(
-        &mut self,
+        &self,
         output_c_file: &mut impl std::io::Write,
         output_h_file: &mut impl std::io::Write,
     );
@@ -48,7 +48,7 @@ pub trait CGeneration: private::Sealed {
 
 impl CGeneration for Model {
     fn compute_to_c(
-        &mut self,
+        &self,
         output_c_file: &mut impl std::io::Write,
         output_h_file: &mut impl std::io::Write,
     ) {
@@ -58,17 +58,17 @@ impl CGeneration for Model {
 }
 
 impl private::Sealed for Model {
-    fn generate_header_pre(&mut self, output_file: &mut impl std::io::Write) {
-        let sequence_name = self.sequence_name.as_mut().unwrap().to_uppercase();
+    fn generate_header_pre(&self, output_file: &mut impl std::io::Write) {
+        let sequence_name = self.sequence_name.as_ref().unwrap().to_uppercase();
         let sequence_name = sequence_name.as_str();
         write!(output_file, "#ifndef _{sequence_name}_H\n#define _{sequence_name}_H\n#include <stdint.h>\n#include <stdbool.h>\n").unwrap();
     }
 
-    fn generate_header_post(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_header_post(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "#endif").unwrap();
     }
 
-    fn generate_operation_id_enum(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_operation_id_enum(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "enum OperationId{{").unwrap();
 
         for (record_name, _record_members) in self.defined_records.iter() {
@@ -78,7 +78,7 @@ impl private::Sealed for Model {
         writeln!(output_file, "}};").unwrap();
     }
 
-    fn generate_operation_variants_definition(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_operation_variants_definition(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "union OperationVariant{{").unwrap();
         for (struct_name, _) in self.defined_records.iter() {
             let struct_member_variant = snake_case(struct_name);
@@ -91,11 +91,11 @@ impl private::Sealed for Model {
         writeln!(output_file, "}};").unwrap();
     }
 
-    fn generate_operation_definition(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_operation_definition(&self, output_file: &mut impl std::io::Write) {
         write!(output_file, "typedef struct{{\n   const enum OperationId id;\n   const union OperationVariant variant;\n}}Operation;\n").unwrap();
     }
 
-    fn generate_enum_definitions(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_enum_definitions(&self, output_file: &mut impl std::io::Write) {
         for (enum_type_name, enum_members) in self.defined_enums.iter() {
             writeln!(output_file, "enum {enum_type_name}{{").unwrap();
             for enum_member in enum_members.iter() {
@@ -105,7 +105,7 @@ impl private::Sealed for Model {
         }
     }
 
-    fn generate_struct_definitions(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_struct_definitions(&self, output_file: &mut impl std::io::Write) {
         for (struct_name, struct_members) in self.defined_records.iter() {
             writeln!(output_file, "typedef struct{{").unwrap();
             for struct_member in struct_members {
@@ -119,7 +119,7 @@ impl private::Sealed for Model {
         }
     }
 
-    fn generate_operation_list(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_operation_list(&self, output_file: &mut impl std::io::Write) {
         writeln!(
             output_file,
             "const Operation {}[] = {{",
@@ -144,7 +144,7 @@ impl private::Sealed for Model {
         generate_blank_line(output_file);
     }
 
-    fn generate_array_instances(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_array_instances(&self, output_file: &mut impl std::io::Write) {
         for (operation, operation_instance_name) in self.instanciated_arrays.iter() {
             writeln!(
                 output_file,
@@ -156,7 +156,7 @@ impl private::Sealed for Model {
         generate_blank_line(output_file);
     }
 
-    fn generate_operation_instances(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_operation_instances(&self, output_file: &mut impl std::io::Write) {
         for (operation, operation_instance_name) in self.operation_instances.iter() {
             let operation_type = operation.operation_type.as_str();
             write!(
@@ -179,12 +179,12 @@ impl private::Sealed for Model {
         generate_blank_line(output_file);
     }
 
-    fn generate_source_pre(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_source_pre(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "#include \"playdisc.h\"").unwrap();
         generate_blank_line(output_file);
     }
 
-    fn generate_source_post(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_source_post(&self, output_file: &mut impl std::io::Write) {
         let sequence_name = self.sequence_name.as_ref().unwrap().to_lowercase();
         writeln!(
             output_file,
@@ -194,7 +194,7 @@ impl private::Sealed for Model {
         .unwrap();
     }
 
-    fn generate_c_source(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_c_source(&self, output_file: &mut impl std::io::Write) {
         self.generate_source_pre(output_file);
         self.generate_array_instances(output_file);
         self.generate_operation_instances(output_file);
@@ -202,7 +202,7 @@ impl private::Sealed for Model {
         self.generate_source_post(output_file);
     }
 
-    fn generate_c_header(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_c_header(&self, output_file: &mut impl std::io::Write) {
         self.generate_header_pre(output_file);
         generate_blank_line(output_file);
         self.generate_operation_id_enum(output_file);

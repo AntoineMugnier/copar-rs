@@ -10,14 +10,14 @@ mod private {
     use crate::unirecord::MemberType;
 
     pub trait Sealed {
-        fn generate_rust_file(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_rust_operation_id_enum(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_rust_operation_variant_enum(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_rust_enums(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_rust_structs(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_rust_arrays(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_rust_instances(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_rust_operation_list(&mut self, output_file: &mut impl std::io::Write);
+        fn generate_rust_file(&self, output_file: &mut impl std::io::Write);
+        fn generate_rust_operation_id_enum(&self, output_file: &mut impl std::io::Write);
+        fn generate_rust_operation_variant_enum(&self, output_file: &mut impl std::io::Write);
+        fn generate_rust_enums(&self, output_file: &mut impl std::io::Write);
+        fn generate_rust_structs(&self, output_file: &mut impl std::io::Write);
+        fn generate_rust_arrays(&self, output_file: &mut impl std::io::Write);
+        fn generate_rust_instances(&self, output_file: &mut impl std::io::Write);
+        fn generate_rust_operation_list(&self, output_file: &mut impl std::io::Write);
         fn member_type_to_rust_type_string(member_type: &MemberType) -> String;
         fn fmt_rust_array_value<T, F: Fn(&T) -> String>(array: &[T], format_function: F) -> String;
         fn fmt_rust_array_instance(
@@ -36,17 +36,17 @@ use stringcase::{macro_case, pascal_case, snake_case};
 
 /// Trait allowing model to generate Rust code
 pub trait RustGeneration: private::Sealed {
-    fn compute_to_rust(&mut self, output_rust_file: &mut impl std::io::Write);
+    fn compute_to_rust(&self, output_rust_file: &mut impl std::io::Write);
 }
 
 impl RustGeneration for Model {
-    fn compute_to_rust(&mut self, output_rust_file: &mut impl std::io::Write) {
+    fn compute_to_rust(&self, output_rust_file: &mut impl std::io::Write) {
         self.generate_rust_file(output_rust_file);
     }
 }
 
 impl private::Sealed for Model {
-    fn generate_rust_file(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_rust_file(&self, output_file: &mut impl std::io::Write) {
         self.generate_rust_operation_id_enum(output_file);
         self.generate_rust_operation_variant_enum(output_file);
 
@@ -58,7 +58,7 @@ impl private::Sealed for Model {
         self.generate_rust_operation_list(output_file);
     }
 
-    fn generate_rust_operation_id_enum(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_rust_operation_id_enum(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "#[derive(Debug, Clone, Copy, PartialEq, Eq)]").unwrap();
         writeln!(output_file, "pub enum OperationId {{").unwrap();
         for record_name in self.defined_records.keys() {
@@ -68,7 +68,7 @@ impl private::Sealed for Model {
         generate_blank_line(output_file);
     }
 
-    fn generate_rust_operation_variant_enum(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_rust_operation_variant_enum(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "#[derive(Debug, Clone)]").unwrap();
         writeln!(output_file, "pub enum OperationVariant<'a> {{").unwrap();
         for struct_name in self.defined_records.keys() {
@@ -84,7 +84,7 @@ impl private::Sealed for Model {
         generate_blank_line(output_file);
     }
 
-    fn generate_rust_enums(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_rust_enums(&self, output_file: &mut impl std::io::Write) {
         for (enum_type_name, enum_members) in self.defined_enums.iter() {
             writeln!(output_file, "#[derive(Debug, Clone, Copy, PartialEq, Eq)]").unwrap();
             writeln!(output_file, "pub enum {} {{", pascal_case(enum_type_name)).unwrap();
@@ -96,7 +96,7 @@ impl private::Sealed for Model {
         }
     }
 
-    fn generate_rust_structs(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_rust_structs(&self, output_file: &mut impl std::io::Write) {
         for (struct_name, struct_members) in self.defined_records.iter() {
             writeln!(output_file, "#[derive(Debug, Clone, PartialEq)]").unwrap();
             writeln!(output_file, "pub struct {} {{", pascal_case(struct_name)).unwrap();
@@ -111,7 +111,7 @@ impl private::Sealed for Model {
         }
     }
 
-    fn generate_rust_arrays(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_rust_arrays(&self, output_file: &mut impl std::io::Write) {
         for (array_variant, array_instance_name) in self.instanciated_arrays.iter() {
             // array_instance_name -> snake_case for Rust static name
             let rust_array_name = macro_case(array_instance_name);
@@ -127,7 +127,7 @@ impl private::Sealed for Model {
         }
     }
 
-    fn generate_rust_instances(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_rust_instances(&self, output_file: &mut impl std::io::Write) {
         for (operation, operation_instance_name) in self.operation_instances.iter() {
             let operation_type = pascal_case(&operation.operation_type);
             let rust_instance_name = macro_case(operation_instance_name);
@@ -156,7 +156,7 @@ impl private::Sealed for Model {
         }
     }
 
-    fn generate_rust_operation_list(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_rust_operation_list(&self, output_file: &mut impl std::io::Write) {
         let array_name = macro_case(self.sequence_name.as_ref().unwrap());
 
         writeln!(

@@ -12,22 +12,22 @@ mod private {
     use crate::unirecord::MemberType;
 
     pub trait Sealed {
-        fn generate_cs_file(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_cs_namespace_open(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_cs_namespace_close(&mut self, output_file: &mut impl std::io::Write);
+        fn generate_cs_file(&self, output_file: &mut impl std::io::Write);
+        fn generate_cs_namespace_open(&self, output_file: &mut impl std::io::Write);
+        fn generate_cs_namespace_close(&self, output_file: &mut impl std::io::Write);
         fn generate_cs_static_class_open(
-            &mut self,
+            &self,
             output_file: &mut impl std::io::Write,
             class_name: &str,
         );
-        fn generate_cs_static_class_close(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_cs_operation_id_enum(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_cs_operation_definition(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_cs_enums(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_cs_structs(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_cs_arrays(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_cs_instances(&mut self, output_file: &mut impl std::io::Write);
-        fn generate_cs_operation_list(&mut self, output_file: &mut impl std::io::Write);
+        fn generate_cs_static_class_close(&self, output_file: &mut impl std::io::Write);
+        fn generate_cs_operation_id_enum(&self, output_file: &mut impl std::io::Write);
+        fn generate_cs_operation_definition(&self, output_file: &mut impl std::io::Write);
+        fn generate_cs_enums(&self, output_file: &mut impl std::io::Write);
+        fn generate_cs_structs(&self, output_file: &mut impl std::io::Write);
+        fn generate_cs_arrays(&self, output_file: &mut impl std::io::Write);
+        fn generate_cs_instances(&self, output_file: &mut impl std::io::Write);
+        fn generate_cs_operation_list(&self, output_file: &mut impl std::io::Write);
         fn member_type_to_cs_type_string(member_type: &MemberType) -> String;
         fn fmt_cs_array_value<T, F: Fn(&T) -> String>(array: &[T], format_function: F) -> String;
         fn fmt_cs_array_instance(
@@ -42,17 +42,17 @@ use private::Sealed;
 
 /// Trait allowing copar model to generate C# code
 pub trait CSharpGeneration: private::Sealed {
-    fn compute_to_cs(&mut self, output_cs_file: &mut impl std::io::Write);
+    fn compute_to_cs(&self, output_cs_file: &mut impl std::io::Write);
 }
 
 impl CSharpGeneration for Model {
-    fn compute_to_cs(&mut self, output_cs_file: &mut impl std::io::Write) {
+    fn compute_to_cs(&self, output_cs_file: &mut impl std::io::Write) {
         self.generate_cs_file(output_cs_file);
     }
 }
 
 impl private::Sealed for Model {
-    fn generate_cs_file(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_cs_file(&self, output_file: &mut impl std::io::Write) {
         self.generate_cs_namespace_open(output_file);
         generate_blank_line(output_file);
 
@@ -78,7 +78,7 @@ impl private::Sealed for Model {
         self.generate_cs_namespace_close(output_file);
     }
 
-    fn generate_cs_namespace_open(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_cs_namespace_open(&self, output_file: &mut impl std::io::Write) {
         // Consider making the namespace configurable or derived from sequence_name
         let namespace = self.sequence_name.as_ref().map_or_else(
             || "GeneratedPlaydisc".to_string(),
@@ -87,12 +87,12 @@ impl private::Sealed for Model {
         write!(output_file, "namespace {}\n{{\n", namespace).unwrap();
     }
 
-    fn generate_cs_namespace_close(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_cs_namespace_close(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "}}").unwrap();
     }
 
     fn generate_cs_static_class_open(
-        &mut self,
+        &self,
         output_file: &mut impl std::io::Write,
         class_name: &str,
     ) {
@@ -104,11 +104,11 @@ impl private::Sealed for Model {
         .unwrap();
     }
 
-    fn generate_cs_static_class_close(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_cs_static_class_close(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "    }}").unwrap();
     }
 
-    fn generate_cs_operation_id_enum(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_cs_operation_id_enum(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "    public enum OperationId {{").unwrap();
         // Assuming operation types are derived from the keys of defined_records
         // or from a dedicated list of operation types if not all records are operations.
@@ -121,7 +121,7 @@ impl private::Sealed for Model {
         generate_blank_line(output_file);
     }
 
-    fn generate_cs_operation_definition(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_cs_operation_definition(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "    public readonly struct Operation {{").unwrap();
         writeln!(output_file, "        public readonly OperationId Id;").unwrap();
         write!(output_file, "        public readonly object Variant;\n\n").unwrap();
@@ -137,7 +137,7 @@ impl private::Sealed for Model {
         generate_blank_line(output_file);
     }
 
-    fn generate_cs_enums(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_cs_enums(&self, output_file: &mut impl std::io::Write) {
         for (enum_type_name, enum_members) in self.defined_enums.iter() {
             writeln!(output_file, "    public enum {} {{", enum_type_name).unwrap();
             for enum_member in enum_members.iter() {
@@ -148,7 +148,7 @@ impl private::Sealed for Model {
         }
     }
 
-    fn generate_cs_structs(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_cs_structs(&self, output_file: &mut impl std::io::Write) {
         for (struct_name, struct_members) in self.defined_records.iter() {
             writeln!(output_file, "    public struct {} {{", struct_name).unwrap();
             for struct_member in struct_members {
@@ -167,7 +167,7 @@ impl private::Sealed for Model {
         }
     }
 
-    fn generate_cs_arrays(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_cs_arrays(&self, output_file: &mut impl std::io::Write) {
         for (array_variant, array_instance_name) in self.instanciated_arrays.iter() {
             // Assuming array_instance_name is already in PascalCase for C#
             let csharp_array_name = pascal_case(array_instance_name);
@@ -183,7 +183,7 @@ impl private::Sealed for Model {
         }
     }
 
-    fn generate_cs_instances(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_cs_instances(&self, output_file: &mut impl std::io::Write) {
         for (operation, operation_instance_name) in self.operation_instances.iter() {
             let operation_type = operation.operation_type.as_str(); // Assumed PascalCase
                                                                     // Assuming operation_instance_name needs conversion to PascalCase for C#
@@ -211,7 +211,7 @@ impl private::Sealed for Model {
         }
     }
 
-    fn generate_cs_operation_list(&mut self, output_file: &mut impl std::io::Write) {
+    fn generate_cs_operation_list(&self, output_file: &mut impl std::io::Write) {
         let array_name = pascal_case(self.sequence_name.as_ref().unwrap());
 
         writeln!(
