@@ -121,7 +121,7 @@ impl private::Sealed for Model {
     fn generate_operation_list(&mut self, output_file: &mut impl std::io::Write) {
         writeln!(
             output_file,
-            "const Operation {}_operations[] = {{",
+            "const Operation {}[] = {{",
             self.sequence_name.as_ref().unwrap()
         )
         .unwrap();

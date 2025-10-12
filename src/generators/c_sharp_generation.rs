@@ -210,9 +210,7 @@ impl private::Sealed for Model {
     }
 
     fn generate_cs_operation_list(&mut self, output_file: &mut impl std::io::Write) {
-        let base_name = self.sequence_name.as_ref().map_or("All", |s| s);
-        // Use a helper to ensure PascalCase for the array name
-        let array_name = format!("{}Operations", to_pascal_case(base_name));
+        let array_name = to_pascal_case(self.sequence_name.as_ref().unwrap());
 
         writeln!(
             output_file,

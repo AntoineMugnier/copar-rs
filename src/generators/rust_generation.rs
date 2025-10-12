@@ -175,8 +175,7 @@ impl private::Sealed for Model {
     }
 
     fn generate_rust_operation_list(&mut self, output_file: &mut impl std::io::Write) {
-        let base_name = self.sequence_name.as_ref().map_or("all", |s| s);
-        let array_name = format!("{}_OPERATIONS", pascal_to_macro_case(base_name));
+        let array_name = pascal_to_macro_case(self.sequence_name.as_ref().unwrap());
 
         writeln!(
             output_file,
