@@ -1,7 +1,5 @@
 use crate::{
-    code_generation_commons::{
-        generate_blank_line, pascal_to_macro_case, to_pascal_case, to_snake_case,
-    }, // if you have this helper for writing blank lines
+    code_generation_commons::generate_blank_line, // if you have this helper for writing blank lines
     model::{ArrayInstanceVariant, OperationParameterVariant},
     unirecord::MemberType,
     Model,
@@ -30,22 +28,11 @@ mod private {
             operation_parameter_variant: &OperationParameterVariant,
         ) -> String;
         // Helpers
-        fn to_pascal_case(s: &str) -> String {
-            s.split('_')
-                .filter(|sub| !sub.is_empty())
-                .map(|word| {
-                    let mut chars = word.chars();
-                    match chars.next() {
-                        None => String::new(),
-                        Some(f) => f.to_uppercase().collect::<String>() + chars.as_str(),
-                    }
-                })
-                .collect()
-        }
     }
 }
 
 use private::Sealed;
+use stringcase::{macro_case, pascal_case, snake_case};
 
 /// Trait allowing model to generate Rust code
 pub trait RustGeneration: private::Sealed {
@@ -75,7 +62,7 @@ impl private::Sealed for Model {
         writeln!(output_file, "#[derive(Debug, Clone, Copy, PartialEq, Eq)]").unwrap();
         writeln!(output_file, "pub enum OperationId {{").unwrap();
         for record_name in self.defined_records.keys() {
-            writeln!(output_file, "    {},", to_pascal_case(record_name)).unwrap();
+            writeln!(output_file, "    {},", pascal_case(record_name)).unwrap();
         }
         writeln!(output_file, "}}").unwrap();
         generate_blank_line(output_file);
@@ -88,8 +75,8 @@ impl private::Sealed for Model {
             writeln!(
                 output_file,
                 "    {}(&'a {}),",
-                to_pascal_case(struct_name),
-                to_pascal_case(struct_name)
+                pascal_case(struct_name),
+                pascal_case(struct_name)
             )
             .unwrap();
         }
@@ -100,14 +87,9 @@ impl private::Sealed for Model {
     fn generate_rust_enums(&mut self, output_file: &mut impl std::io::Write) {
         for (enum_type_name, enum_members) in self.defined_enums.iter() {
             writeln!(output_file, "#[derive(Debug, Clone, Copy, PartialEq, Eq)]").unwrap();
-            writeln!(
-                output_file,
-                "pub enum {} {{",
-                to_pascal_case(enum_type_name)
-            )
-            .unwrap();
+            writeln!(output_file, "pub enum {} {{", pascal_case(enum_type_name)).unwrap();
             for enum_member in enum_members.iter() {
-                writeln!(output_file, "    {},", to_pascal_case(enum_member)).unwrap();
+                writeln!(output_file, "    {},", pascal_case(enum_member)).unwrap();
             }
             writeln!(output_file, "}}").unwrap();
             generate_blank_line(output_file);
@@ -117,10 +99,10 @@ impl private::Sealed for Model {
     fn generate_rust_structs(&mut self, output_file: &mut impl std::io::Write) {
         for (struct_name, struct_members) in self.defined_records.iter() {
             writeln!(output_file, "#[derive(Debug, Clone, PartialEq)]").unwrap();
-            writeln!(output_file, "pub struct {} {{", to_pascal_case(struct_name)).unwrap();
+            writeln!(output_file, "pub struct {} {{", pascal_case(struct_name)).unwrap();
             for struct_member in struct_members {
                 // in Rust fields are snake_case, types are mapped to Rust types
-                let field_name = to_snake_case(&struct_member.member_name);
+                let field_name = snake_case(&struct_member.member_name);
                 let rust_type = Self::member_type_to_rust_type_string(&struct_member.member_type);
                 writeln!(output_file, "    pub {}: {},", field_name, rust_type).unwrap();
             }
@@ -132,7 +114,7 @@ impl private::Sealed for Model {
     fn generate_rust_arrays(&mut self, output_file: &mut impl std::io::Write) {
         for (array_variant, array_instance_name) in self.instanciated_arrays.iter() {
             // array_instance_name -> snake_case for Rust static name
-            let rust_array_name = pascal_to_macro_case(array_instance_name);
+            let rust_array_name = macro_case(array_instance_name);
             writeln!(
                 output_file,
                 "{}",
@@ -147,8 +129,8 @@ impl private::Sealed for Model {
 
     fn generate_rust_instances(&mut self, output_file: &mut impl std::io::Write) {
         for (operation, operation_instance_name) in self.operation_instances.iter() {
-            let operation_type = to_pascal_case(&operation.operation_type);
-            let rust_instance_name = pascal_to_macro_case(operation_instance_name);
+            let operation_type = pascal_case(&operation.operation_type);
+            let rust_instance_name = macro_case(operation_instance_name);
             write!(
                 output_file,
                 "pub static {}: {} = {} {{ ",
@@ -175,7 +157,7 @@ impl private::Sealed for Model {
     }
 
     fn generate_rust_operation_list(&mut self, output_file: &mut impl std::io::Write) {
-        let array_name = pascal_to_macro_case(self.sequence_name.as_ref().unwrap());
+        let array_name = macro_case(self.sequence_name.as_ref().unwrap());
 
         writeln!(
             output_file,
@@ -186,8 +168,8 @@ impl private::Sealed for Model {
 
         // We will emit a sequence of Operation values; referencing static instances by name.
         for op_ref in self.operation_ref_table.iter() {
-            let operation_id_member = to_pascal_case(&op_ref.operation_type);
-            let rust_instance_name = pascal_to_macro_case(&op_ref.operation_variant_ref_name);
+            let operation_id_member = pascal_case(&op_ref.operation_type);
+            let rust_instance_name = macro_case(&op_ref.operation_variant_ref_name);
 
             writeln!(
                 output_file,
@@ -223,7 +205,7 @@ impl private::Sealed for Model {
             MemberType::ArrayOfF32 => "&'static [f32]".to_string(),
             MemberType::ArrayOfF64 => "&'static [f64]".to_string(),
             MemberType::Bool => "bool".to_string(),
-            MemberType::Identifier(enum_type) => to_pascal_case(enum_type),
+            MemberType::Identifier(enum_type) => pascal_case(enum_type),
         }
     }
 
@@ -310,59 +292,59 @@ impl private::Sealed for Model {
         // For struct literal assignment we emit "field_name: value"
         match operation_parameter_variant {
             OperationParameterVariant::X8(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: 0x{:x}", name, param.value)
             }
             OperationParameterVariant::U8(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: {}", name, param.value)
             }
             OperationParameterVariant::I8(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: {}", name, param.value)
             }
             OperationParameterVariant::X16(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: 0x{:x}", name, param.value)
             }
             OperationParameterVariant::U16(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: {}", name, param.value)
             }
             OperationParameterVariant::I16(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: {}", name, param.value)
             }
             OperationParameterVariant::X32(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: 0x{:x}", name, param.value)
             }
             OperationParameterVariant::U32(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: {}", name, param.value)
             }
             OperationParameterVariant::I32(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: {}", name, param.value)
             }
             OperationParameterVariant::X64(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: 0x{:x}", name, param.value)
             }
             OperationParameterVariant::U64(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: {}", name, param.value)
             }
             OperationParameterVariant::I64(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: {}", name, param.value)
             }
             OperationParameterVariant::F32(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: {}", name, param.value)
             }
             OperationParameterVariant::F64(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 format!("{}: {}", name, param.value)
             }
             OperationParameterVariant::ArrayOfX8(param)
@@ -379,20 +361,20 @@ impl private::Sealed for Model {
             | OperationParameterVariant::ArrayOfI64(param)
             | OperationParameterVariant::ArrayOfF32(param)
             | OperationParameterVariant::ArrayOfF64(param) => {
-                let name = to_snake_case(&param.name);
-                let rust_array_name = pascal_to_macro_case(&param.value);
+                let name = snake_case(&param.name);
+                let rust_array_name = macro_case(&param.value);
                 format!("{}: {}", name, rust_array_name)
             }
             OperationParameterVariant::Bool(param) => {
-                let name = to_snake_case(&param.name);
+                let name = snake_case(&param.name);
                 let val_str = if param.value { "true" } else { "false" };
                 format!("{}: {}", name, val_str)
             }
             OperationParameterVariant::Identifier(param) => {
                 // enum type and value assumed PascalCase
-                let name = to_snake_case(&param.name);
-                let enum_type = to_pascal_case(&param.enum_type);
-                let enum_value = to_pascal_case(&param.value);
+                let name = snake_case(&param.name);
+                let enum_type = pascal_case(&param.enum_type);
+                let enum_value = pascal_case(&param.value);
                 format!("{}: {}::{}", name, enum_type, enum_value)
             }
         }

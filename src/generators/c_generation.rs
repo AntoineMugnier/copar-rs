@@ -1,9 +1,10 @@
 use crate::{
-    code_generation_commons::{generate_blank_line, pascal_to_macro_case, pascal_to_snake_case},
+    code_generation_commons::generate_blank_line,
     model::{ArrayInstanceVariant, OperationParameterVariant},
     unirecord::MemberType,
     Model,
 };
+use stringcase::{macro_case, snake_case};
 
 mod private {
     use super::*;
@@ -71,7 +72,7 @@ impl private::Sealed for Model {
         writeln!(output_file, "enum OperationId{{").unwrap();
 
         for (record_name, _record_members) in self.defined_records.iter() {
-            let record_name = pascal_to_macro_case(record_name);
+            let record_name = macro_case(record_name);
             writeln!(output_file, "   OPERATION_ID_{},", record_name).unwrap();
         }
         writeln!(output_file, "}};").unwrap();
@@ -80,7 +81,7 @@ impl private::Sealed for Model {
     fn generate_operation_variants_definition(&mut self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "union OperationVariant{{").unwrap();
         for (struct_name, _) in self.defined_records.iter() {
-            let struct_member_variant = pascal_to_snake_case(struct_name);
+            let struct_member_variant = snake_case(struct_name);
             writeln!(
                 output_file,
                 "   const {struct_name}* const {struct_member_variant};"
@@ -128,12 +129,11 @@ impl private::Sealed for Model {
 
         let nb_operations = self.operation_ref_table.len();
         for (index, operation_table_member) in self.operation_ref_table.iter().enumerate() {
-            let record_name = pascal_to_macro_case(&operation_table_member.operation_type);
+            let record_name = macro_case(&operation_table_member.operation_type);
             let operation_id = format!("OPERATION_ID_{}", record_name);
             let operation_variant_instance_ref =
                 operation_table_member.operation_variant_ref_name.as_str();
-            let operation_variant_name =
-                pascal_to_snake_case(&operation_table_member.operation_type);
+            let operation_variant_name = snake_case(&operation_table_member.operation_type);
             write!(output_file, "   {{.id = {operation_id}, .variant={{.{operation_variant_name}=&{operation_variant_instance_ref}}}}}",).unwrap();
             if index < nb_operations - 1 {
                 writeln!(output_file, ",").unwrap();
@@ -188,7 +188,7 @@ impl private::Sealed for Model {
         let sequence_name = self.sequence_name.as_ref().unwrap().to_lowercase();
         writeln!(
             output_file,
-            "const uint32_t nb_{}_operations = sizeof({}_operations)/sizeof(Operation);",
+            "const uint32_t {}_len = sizeof({}_operations)/sizeof(Operation);",
             sequence_name, sequence_name
         )
         .unwrap();
