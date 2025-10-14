@@ -1,4 +1,3 @@
-mod code_generation_commons;
 mod generators;
 mod model;
 mod parser;

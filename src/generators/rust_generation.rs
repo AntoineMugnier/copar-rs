@@ -1,5 +1,5 @@
+use super::generate_blank_line;
 use crate::{
-    code_generation_commons::generate_blank_line,
     model::{ArrayInstanceVariant, OperationParameterVariant},
     unirecord::MemberType,
     Model,
