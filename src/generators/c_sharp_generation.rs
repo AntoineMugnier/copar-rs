@@ -1,6 +1,6 @@
 use crate::{
-    code_generation_commons::generate_blank_line, // Removed unused pascal_to_macro_case, pascal_to_snake_case
-    model::{ArrayInstanceVariant, OperationParameterVariant}, // Assuming OperationRefTableEntry is part of model
+    code_generation_commons::generate_blank_line,
+    model::{ArrayInstanceVariant, OperationParameterVariant},
     unirecord::MemberType,
     Model,
 };
@@ -70,7 +70,7 @@ impl private::Sealed for Model {
 
         self.generate_cs_arrays(output_file);
         self.generate_cs_instances(output_file);
-        self.generate_cs_operation_list(output_file); // Add this call
+        self.generate_cs_operation_list(output_file);
 
         self.generate_cs_static_class_close(output_file);
         generate_blank_line(output_file);
@@ -79,7 +79,6 @@ impl private::Sealed for Model {
     }
 
     fn generate_cs_namespace_open(&self, output_file: &mut impl std::io::Write) {
-        // Consider making the namespace configurable or derived from sequence_name
         let namespace = self.sequence_name.as_ref().map_or_else(
             || "GeneratedPlaydisc".to_string(),
             |s_name| format!("Generated{}", pascal_case(s_name)),
@@ -110,10 +109,6 @@ impl private::Sealed for Model {
 
     fn generate_cs_operation_id_enum(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "    public enum OperationId {{").unwrap();
-        // Assuming operation types are derived from the keys of defined_records
-        // or from a dedicated list of operation types if not all records are operations.
-        // For C#, enum members are typically PascalCase.
-        // self.defined_records.keys() are assumed to be PascalCase (e.g. "HciCommand")
         for record_name in self.defined_records.keys() {
             writeln!(output_file, "        {},", record_name).unwrap();
         }
@@ -144,7 +139,7 @@ impl private::Sealed for Model {
                 writeln!(output_file, "        {},", enum_member).unwrap();
             }
             writeln!(output_file, "    }}").unwrap();
-            generate_blank_line(output_file); // Add blank line after each enum
+            generate_blank_line(output_file);
         }
     }
 
@@ -152,7 +147,7 @@ impl private::Sealed for Model {
         for (struct_name, struct_members) in self.defined_records.iter() {
             writeln!(output_file, "    public struct {} {{", struct_name).unwrap();
             for struct_member in struct_members {
-                let member_name = &struct_member.member_name; // Assuming PascalCase
+                let member_name = &struct_member.member_name;
                 let member_cs_type =
                     Self::member_type_to_cs_type_string(&struct_member.member_type);
                 writeln!(
@@ -163,13 +158,12 @@ impl private::Sealed for Model {
                 .unwrap();
             }
             writeln!(output_file, "    }}").unwrap();
-            generate_blank_line(output_file); // Add blank line after each struct
+            generate_blank_line(output_file);
         }
     }
 
     fn generate_cs_arrays(&self, output_file: &mut impl std::io::Write) {
         for (array_variant, array_instance_name) in self.instanciated_arrays.iter() {
-            // Assuming array_instance_name is already in PascalCase for C#
             let csharp_array_name = pascal_case(array_instance_name);
             writeln!(
                 output_file,
@@ -185,8 +179,8 @@ impl private::Sealed for Model {
 
     fn generate_cs_instances(&self, output_file: &mut impl std::io::Write) {
         for (operation, operation_instance_name) in self.operation_instances.iter() {
-            let operation_type = operation.operation_type.as_str(); // Assumed PascalCase
-                                                                    // Assuming operation_instance_name needs conversion to PascalCase for C#
+            let operation_type = operation.operation_type.as_str();
+
             let csharp_op_instance_name = pascal_case(operation_instance_name);
             write!(
                 output_file,
@@ -197,7 +191,6 @@ impl private::Sealed for Model {
             let nb_parameters = operation.parameters.len();
 
             for (index, operation_parameter) in operation.parameters.iter().enumerate() {
-                // fmt_cs_struct_member assumes param.name is PascalCase
                 let param_assignment = Self::fmt_cs_struct_member(operation_parameter);
                 write!(output_file, "{}", param_assignment).unwrap();
                 if index < nb_parameters - 1 {
@@ -222,10 +215,7 @@ impl private::Sealed for Model {
         .unwrap();
 
         for op_ref in self.operation_ref_table.iter() {
-            // op_ref.operation_type is the struct name (e.g., "HciCommand"), used for OperationId
-            // op_ref.operation_variant_ref_name is the instance name (e.g., "hci_command_0")
-            // This instance name must match a C# PascalCase static field.
-            let operation_id_member = &op_ref.operation_type; // Assumed PascalCase
+            let operation_id_member = &op_ref.operation_type;
             let csharp_instance_name = pascal_case(&op_ref.operation_variant_ref_name);
 
             writeln!(
@@ -265,7 +255,7 @@ impl private::Sealed for Model {
             MemberType::ArrayOfF32 => "float[]".to_string(),
             MemberType::ArrayOfF64 => "double[]".to_string(),
             MemberType::Bool => "bool".to_string(),
-            MemberType::Identifier(enum_type) => enum_type.clone(), // Assumed PascalCase
+            MemberType::Identifier(enum_type) => enum_type.clone(),
         }
     }
 
@@ -284,7 +274,7 @@ impl private::Sealed for Model {
 
     fn fmt_cs_array_instance(
         array_instance_variant: &ArrayInstanceVariant,
-        array_name: &str, // This is now expected to be PascalCase
+        array_name: &str,
     ) -> String {
         let (array_value, cs_type) = match array_instance_variant {
             ArrayInstanceVariant::X8(array) => (
@@ -336,10 +326,6 @@ impl private::Sealed for Model {
     }
 
     fn fmt_cs_struct_member(operation_parameter_variant: &OperationParameterVariant) -> String {
-        // param.name is assumed to be PascalCase from the model or converted before this call
-        // For struct member assignment, param.name should be PascalCase.
-        // If param.name in OperationParameterVariant is snake_case, it needs conversion here or earlier.
-        // Assuming param.name is already C# style (PascalCase).
         match operation_parameter_variant {
             OperationParameterVariant::X8(param) => format!("{} = 0x{:x}", param.name, param.value),
             OperationParameterVariant::U8(param) => format!("{} = {}", param.name, param.value),
@@ -359,7 +345,7 @@ impl private::Sealed for Model {
             }
             OperationParameterVariant::U64(param) => format!("{} = {}", param.name, param.value),
             OperationParameterVariant::I64(param) => format!("{} = {}", param.name, param.value),
-            OperationParameterVariant::F32(param) => format!("{} = {}f", param.name, param.value), // C# float literal
+            OperationParameterVariant::F32(param) => format!("{} = {}f", param.name, param.value),
             OperationParameterVariant::F64(param) => format!("{} = {}", param.name, param.value),
             OperationParameterVariant::ArrayOfX8(param)
             | OperationParameterVariant::ArrayOfU8(param)
@@ -375,16 +361,14 @@ impl private::Sealed for Model {
             | OperationParameterVariant::ArrayOfI64(param)
             | OperationParameterVariant::ArrayOfF32(param)
             | OperationParameterVariant::ArrayOfF64(param) => {
-                // param.value is the array instance name, needs to be PascalCase
                 let csharp_array_ref_name = pascal_case(&param.value);
                 format!("{} = {}", param.name, csharp_array_ref_name)
             }
             OperationParameterVariant::Bool(param) => {
-                let val_str = if param.value { "true" } else { "false" }; // C# bool literals
+                let val_str = if param.value { "true" } else { "false" };
                 format!("{} = {}", param.name, val_str)
             }
             OperationParameterVariant::Identifier(param) => {
-                // param.enum_type and param.value are assumed to be PascalCase
                 format!("{} = {}.{}", param.name, param.enum_type, param.value)
             }
         }

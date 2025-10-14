@@ -235,7 +235,6 @@ impl UniRecordArgVariant {
         let record_arg_name = String::from(record_arg_key.split(':').next().unwrap());
         let value_field: Vec<&str> = arg_value_content.split(&['[', ']']).collect();
 
-        // Array
         if value_field.len() > 1 {
             let value_list: Vec<&str> = value_field[1].split(',').collect();
             match arg_type {

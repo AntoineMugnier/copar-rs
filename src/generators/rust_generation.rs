@@ -1,5 +1,5 @@
 use crate::{
-    code_generation_commons::generate_blank_line, // if you have this helper for writing blank lines
+    code_generation_commons::generate_blank_line,
     model::{ArrayInstanceVariant, OperationParameterVariant},
     unirecord::MemberType,
     Model,
@@ -27,7 +27,6 @@ mod private {
         fn fmt_rust_struct_member(
             operation_parameter_variant: &OperationParameterVariant,
         ) -> String;
-        // Helpers
     }
 }
 
@@ -101,7 +100,6 @@ impl private::Sealed for Model {
             writeln!(output_file, "#[derive(Debug, Clone, PartialEq)]").unwrap();
             writeln!(output_file, "pub struct {} {{", pascal_case(struct_name)).unwrap();
             for struct_member in struct_members {
-                // in Rust fields are snake_case, types are mapped to Rust types
                 let field_name = snake_case(&struct_member.member_name);
                 let rust_type = Self::member_type_to_rust_type_string(&struct_member.member_type);
                 writeln!(output_file, "    pub {}: {},", field_name, rust_type).unwrap();
@@ -113,7 +111,6 @@ impl private::Sealed for Model {
 
     fn generate_rust_arrays(&self, output_file: &mut impl std::io::Write) {
         for (array_variant, array_instance_name) in self.instanciated_arrays.iter() {
-            // array_instance_name -> snake_case for Rust static name
             let rust_array_name = macro_case(array_instance_name);
             writeln!(
                 output_file,
@@ -141,7 +138,6 @@ impl private::Sealed for Model {
             let nb_parameters = operation.parameters.len();
 
             for (index, operation_parameter) in operation.parameters.iter().enumerate() {
-                // convert field name to snake_case and format the value
                 let param_assignment = Self::fmt_rust_struct_member(operation_parameter);
                 write!(output_file, "{}", param_assignment).unwrap();
                 if index < nb_parameters - 1 {
@@ -166,7 +162,6 @@ impl private::Sealed for Model {
         )
         .unwrap();
 
-        // We will emit a sequence of Operation values; referencing static instances by name.
         for op_ref in self.operation_ref_table.iter() {
             let operation_id_member = pascal_case(&op_ref.operation_type);
             let rust_instance_name = macro_case(&op_ref.operation_variant_ref_name);
@@ -224,7 +219,7 @@ impl private::Sealed for Model {
 
     fn fmt_rust_array_instance(
         array_instance_variant: &ArrayInstanceVariant,
-        array_name: &str, // snake_case
+        array_name: &str,
     ) -> String {
         let (array_value, rust_type) = match array_instance_variant {
             ArrayInstanceVariant::X8(array) => (
@@ -289,7 +284,6 @@ impl private::Sealed for Model {
     }
 
     fn fmt_rust_struct_member(operation_parameter_variant: &OperationParameterVariant) -> String {
-        // For struct literal assignment we emit "field_name: value"
         match operation_parameter_variant {
             OperationParameterVariant::X8(param) => {
                 let name = snake_case(&param.name);
@@ -371,7 +365,6 @@ impl private::Sealed for Model {
                 format!("{}: {}", name, val_str)
             }
             OperationParameterVariant::Identifier(param) => {
-                // enum type and value assumed PascalCase
                 let name = snake_case(&param.name);
                 let enum_type = pascal_case(&param.enum_type);
                 let enum_value = pascal_case(&param.value);
