@@ -65,7 +65,7 @@ impl private::Sealed for Model {
     }
 
     fn generate_header_post(&self, output_file: &mut impl std::io::Write) {
-        writeln!(output_file, "#endif").unwrap();
+        write!(output_file, "#endif").unwrap();
     }
 
     fn generate_operation_id_enum(&self, output_file: &mut impl std::io::Write) {
@@ -186,7 +186,7 @@ impl private::Sealed for Model {
 
     fn generate_source_post(&self, output_file: &mut impl std::io::Write) {
         let sequence_name = self.sequence_name.as_ref().unwrap().to_lowercase();
-        writeln!(
+        write!(
             output_file,
             "const uint32_t {}_len = sizeof({}_operations)/sizeof(Operation);",
             sequence_name, sequence_name

@@ -20,4 +20,4 @@ const Operation test_sequence[] = {
    {.id = OPERATION_ID_ANOTHER_CMD, .variant={.another_cmd=&operation_4}}
 };
 
-const uint32_t test_sequence_len = sizeof(test_sequence_operations)/sizeof(Operation);\n";
+const uint32_t test_sequence_len = sizeof(test_sequence_operations)/sizeof(Operation);";

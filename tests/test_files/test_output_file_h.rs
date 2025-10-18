@@ -62,4 +62,4 @@ typedef struct{
    const union OperationVariant variant;
 }Operation;
 
-#endif\n";
+#endif";

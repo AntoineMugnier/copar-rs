@@ -54,7 +54,6 @@ impl CSharpGeneration for Model {
 impl private::Sealed for Model {
     fn generate_cs_file(&self, output_file: &mut impl std::io::Write) {
         self.generate_cs_namespace_open(output_file);
-        generate_blank_line(output_file);
 
         self.generate_cs_operation_id_enum(output_file);
         self.generate_cs_operation_definition(output_file);
@@ -66,14 +65,12 @@ impl private::Sealed for Model {
         let static_class_name = format!("{}Constants", pascal_case(base_class_name));
 
         self.generate_cs_static_class_open(output_file, &static_class_name);
-        generate_blank_line(output_file);
 
         self.generate_cs_arrays(output_file);
         self.generate_cs_instances(output_file);
         self.generate_cs_operation_list(output_file);
 
         self.generate_cs_static_class_close(output_file);
-        generate_blank_line(output_file);
 
         self.generate_cs_namespace_close(output_file);
     }
@@ -87,7 +84,7 @@ impl private::Sealed for Model {
     }
 
     fn generate_cs_namespace_close(&self, output_file: &mut impl std::io::Write) {
-        writeln!(output_file, "}}").unwrap();
+        write!(output_file, "}}").unwrap();
     }
 
     fn generate_cs_static_class_open(
@@ -227,9 +224,6 @@ impl private::Sealed for Model {
         }
 
         writeln!(output_file, "        }};").unwrap();
-        if !self.operation_ref_table.is_empty() {
-            generate_blank_line(output_file);
-        }
     }
 
     fn member_type_to_cs_type_string(member_type: &MemberType) -> String {
