@@ -69,11 +69,11 @@ impl private::Sealed for Model {
 
     fn generate_rust_operation_variant_enum(&self, output_file: &mut impl std::io::Write) {
         writeln!(output_file, "#[derive(Debug, Clone)]").unwrap();
-        writeln!(output_file, "pub enum OperationVariant<'a> {{").unwrap();
+        writeln!(output_file, "pub enum OperationVariant {{").unwrap();
         for struct_name in self.defined_records.keys() {
             writeln!(
                 output_file,
-                "    {}(&'a {}),",
+                "    {}(&'static {}),",
                 pascal_case(struct_name),
                 pascal_case(struct_name)
             )
@@ -174,7 +174,7 @@ impl private::Sealed for Model {
             .unwrap();
         }
 
-        writeln!(output_file, "];").unwrap();
+        write!(output_file, "];").unwrap();
     }
 
     fn member_type_to_rust_type_string(member_type: &MemberType) -> String {

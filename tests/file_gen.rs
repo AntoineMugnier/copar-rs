@@ -1,46 +1,40 @@
 mod test_files;
-use copar::{CGeneration, Model};
-use std::{
-    fs::File,
-    io::{Read, Write},
-};
+use copar::{CGeneration, Model, RustGeneration};
 
 use test_files::{TEST_FILE_C_CONTENT, TEST_FILE_H_CONTENT, TEST_FILE_LOG};
+
+use crate::test_files::TEST_FILE_RUST_CONTENT;
+
 #[test]
-fn test_gen() {
-    let test_files_dir = "/tmp".to_string();
-    let test_input_file_path = test_files_dir.clone() + "/test_input_file";
+fn test_c_gen() {
+    let model = Model::parse(TEST_FILE_LOG.as_bytes()).unwrap();
+    let mut test_output_file_c = Vec::new();
+    let mut test_output_file_h = Vec::new();
+    model.compute_to_c(&mut test_output_file_c, &mut test_output_file_h);
 
-    let mut test_input_file = File::create(test_input_file_path.clone()).unwrap();
-    test_input_file.write_all(TEST_FILE_LOG.as_bytes()).unwrap();
-    drop(test_input_file);
+    assert_eq!(
+        String::from_utf8(test_output_file_c).unwrap(),
+        TEST_FILE_C_CONTENT
+    );
 
-    let test_input_file = File::open(test_input_file_path.clone()).unwrap();
+    assert_eq!(
+        String::from_utf8(test_output_file_h).unwrap(),
+        TEST_FILE_H_CONTENT
+    );
+}
 
-    let test_output_source_file_path = test_files_dir.clone() + "/test_output_file.c";
-    let mut test_output_source_file = File::create(test_output_source_file_path.as_str()).unwrap();
+#[test]
+fn test_rust_gen() {
+    let model = Model::parse(TEST_FILE_LOG.as_bytes()).unwrap();
+    let mut test_output_file_rs = Vec::new();
+    model.compute_to_rust(&mut test_output_file_rs);
+    println!(
+        "{}",
+        String::from_utf8(test_output_file_rs.clone()).unwrap()
+    );
 
-    let test_output_header_file_path = test_files_dir.clone() + "/test_output_file.h";
-    let mut test_output_header_file = File::create(test_output_header_file_path.as_str()).unwrap();
-
-    let mut model = Model::parse(test_input_file).unwrap();
-    model.compute_to_c(&mut test_output_source_file, &mut test_output_header_file);
-
-    let open_file = |file_path: &str| -> String {
-        let mut c_file_obtained = File::open(file_path).unwrap();
-        let mut c_file_content_obtained = String::new();
-        c_file_obtained
-            .read_to_string(&mut c_file_content_obtained)
-            .unwrap();
-        c_file_content_obtained
-    };
-
-    let c_file_buffer_obt = open_file(&test_output_source_file_path);
-    let h_file_buffer_obt = open_file(&test_output_header_file_path);
-
-    let c_file_buffer_exp = TEST_FILE_C_CONTENT;
-    let h_file_buffer_exp = TEST_FILE_H_CONTENT;
-
-    assert_eq!(c_file_buffer_exp, c_file_buffer_obt);
-    assert_eq!(h_file_buffer_exp, h_file_buffer_obt);
+    assert_eq!(
+        String::from_utf8(test_output_file_rs).unwrap(),
+        TEST_FILE_RUST_CONTENT
+    );
 }

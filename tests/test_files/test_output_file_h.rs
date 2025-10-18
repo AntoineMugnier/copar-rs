@@ -19,14 +19,14 @@ enum EfuseAccess{
 
 typedef struct{
    const bool write;
-   const uint8_t fn;
+   const uint8_t ln;
    const uint32_t add;
    const uint8_t data;
 }Cmd52;
 
 typedef struct{
    const bool write;
-   const uint8_t fn;
+   const uint8_t ln;
    const uint32_t add;
    const bool inc;
    const uint8_t* const data;

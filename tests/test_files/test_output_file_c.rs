@@ -5,9 +5,9 @@ const uint8_t array_0[] = {0x80, 0x5};
 const uint8_t array_1[] = {0x80, 0x5, 0x20, 0xfe, 0xc4, 0x31, 0x4, 0x60, 0xce};
 const int8_t array_2[] = {-25, -69, 2};
 
-const Cmd52 operation_0 = {.write = true, .fn = 1, .add = 0x1043, .data = 0x80};
-const Cmd53 operation_1 = {.write = true, .fn = 1, .add = 0x1043, .inc = true, .data = array_0};
-const Cmd53 operation_2 = {.write = false, .fn = 0, .add = 0x1043, .inc = true, .data = array_1};
+const Cmd52 operation_0 = {.write = true, .ln = 1, .add = 0x1043, .data = 0x80};
+const Cmd53 operation_1 = {.write = true, .ln = 1, .add = 0x1043, .inc = true, .data = array_0};
+const Cmd53 operation_2 = {.write = false, .ln = 0, .add = 0x1043, .inc = true, .data = array_1};
 const ReadEfuse operation_3 = {.offset = 0x5ea, .efuse_start = 0x0, .size = 1, .read_efuse_cnt = 10000, .efuse_ctrl = 0x30, .dv_sel = EfuseAccessDDV, .map_ptr = 0xda5708c1};
 const AnotherCmd operation_4 = {.num = 3.565, .adv = EfuseAccessDAV, .top = -2500, .adu = EfuseAccessDXV, .dot = array_2};
 
