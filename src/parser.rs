@@ -66,14 +66,6 @@ impl Parser {
             line_buffer: String::new(),
         }
     }
-    fn remove_timestamp(line: &mut &str) {
-        if let Some(token) = line.chars().nth(0) {
-            if token == '[' {
-                let split_lines = line.splitn(2, "] ");
-                *line = split_lines.last().unwrap();
-            }
-        }
-    }
 
     fn parse_record_args(line: &str) -> ParserResult<Vec<UniRecordArgVariant>> {
         let mut uni_record_args = Vec::new();
@@ -153,7 +145,6 @@ impl Parser {
         match res {
             Ok(delimiter_token_char) => {
                 if let '=' = delimiter_token_char {
-                    // Add space if last line was uncut
                     if self.line_buffer.ends_with(')') {
                         self.line_buffer += " ";
                     }
@@ -164,7 +155,6 @@ impl Parser {
             }
             Err(LineParsingError::MissingBeginDelimiter(delimiter_token_char)) => {
                 if let '=' = delimiter_token_char {
-                    // Add space if last line was uncut
                     if self.line_buffer.ends_with(')') {
                         self.line_buffer += " ";
                     }
@@ -174,7 +164,6 @@ impl Parser {
                 }
             }
             Err(LineParsingError::UnparsableLine) => {
-                // Add space if last line was uncut
                 if self.line_buffer.ends_with(')') {
                     self.line_buffer += " ";
                 }
@@ -289,7 +278,6 @@ impl Parser {
         line_index_ref: &mut usize,
     ) -> FileParsingResult<String> {
         for (line_index, mut line_content) in lines.enumerate() {
-            Self::remove_timestamp(&mut line_content);
             if !line_content.is_empty() {
                 let res = Self::get_delimited_content(&mut line_content);
                 match res {
@@ -321,9 +309,8 @@ impl Parser {
         let mut end_of_parsing = false;
         self.sequence_name = Self::move_to_begin_token(&mut lines_it, &mut line_index_offset)?;
 
-        for (line_index, mut line_content) in lines_it.enumerate() {
+        for (line_index, line_content) in lines_it.enumerate() {
             self.current_line = line_index + line_index_offset + 1;
-            Self::remove_timestamp(&mut line_content);
 
             if !line_content.is_empty() {
                 let res = match self.capturing_state {
