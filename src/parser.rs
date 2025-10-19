@@ -40,7 +40,7 @@ pub enum FileParsingError {
 }
 
 // Copar command parser
-pub struct Parser {
+pub(crate) struct Parser {
     sequence_name: String,
     input_file_buffer: Option<String>,
     model: Model,

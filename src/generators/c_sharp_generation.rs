@@ -42,6 +42,7 @@ use private::Sealed;
 
 /// Trait allowing copar model to generate C# code
 pub trait CSharpGeneration: private::Sealed {
+    /// Generate C# code from the model
     fn compute_to_cs(&self, output_cs_file: &mut impl std::io::Write);
 }
 

@@ -39,6 +39,7 @@ use private::Sealed;
 
 /// Trait allowing copar model to generate C code
 pub trait CGeneration: private::Sealed {
+    /// Generate C code from the model
     fn compute_to_c(
         &self,
         output_c_file: &mut impl std::io::Write,

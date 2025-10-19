@@ -111,6 +111,8 @@ impl Model {
         self.sequence_name = Some(sequence_name);
     }
 
+    /// Parse the copar log from the `begin` token to the `end` token to create a model
+    /// Note that this function will pull every byte from the input reader until EOF is met.
     pub fn parse(input_file: impl io::Read) -> Result<Model, FileParsingError> {
         let parser = Parser::new(input_file);
         parser.parse_file()

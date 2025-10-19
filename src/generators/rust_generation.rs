@@ -33,8 +33,9 @@ mod private {
 use private::Sealed;
 use stringcase::{macro_case, pascal_case, snake_case};
 
-/// Trait allowing model to generate Rust code
+/// Trait allowing copar model to generate Rust code
 pub trait RustGeneration: private::Sealed {
+    /// Generate rust code from the model
     fn compute_to_rust(&self, output_rust_file: &mut impl std::io::Write);
 }
 
