@@ -1,9 +1,6 @@
-use crate::{
-    parser::{FileParsingError, Parser},
-    unirecord::{IdentifierRecordArg, MemberType, UniRecord, UniRecordArgVariant},
-};
+use crate::unirecord::{IdentifierRecordArg, MemberType, UniRecord, UniRecordArgVariant};
 use indexmap::IndexMap;
-use std::{hash::Hash, io};
+use std::hash::Hash;
 
 use ordered_float::OrderedFloat;
 type OrderedF32 = OrderedFloat<f32>;
@@ -109,13 +106,6 @@ pub struct Model {
 impl Model {
     pub(crate) fn set_sequence_name(&mut self, sequence_name: String) {
         self.sequence_name = Some(sequence_name);
-    }
-
-    /// Parse the copar log from the `begin` token to the `end` token to create a model
-    /// Note that this function will pull every byte from the input reader until EOF is met.
-    pub fn parse(input_file: impl io::Read) -> Result<Model, FileParsingError> {
-        let parser = Parser::new(input_file);
-        parser.parse_file()
     }
 
     fn add_identifier_declaration(&mut self, argument: &IdentifierRecordArg) {

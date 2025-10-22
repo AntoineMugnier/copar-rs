@@ -1,7 +1,7 @@
 use crate::model;
 use crate::{model::Model, unirecord::RecordParsingError};
-use std::char;
 use std::str::Lines;
+use std::{char, io};
 
 use crate::unirecord::{UniRecord, UniRecordArgVariant};
 enum RecordCapturingState {
@@ -39,8 +39,8 @@ pub enum FileParsingError {
     },
 }
 
-// Copar command parser
-pub(crate) struct Parser {
+/// Copar command parser. Initialized with the input file.
+pub struct Parser {
     sequence_name: String,
     input_file_buffer: Option<String>,
     model: Model,
@@ -51,7 +51,13 @@ pub(crate) struct Parser {
 }
 
 impl Parser {
-    // Instanciate this structure with the log file containing the copar records
+    /// Shorthand that create a temporary parser to immediately parse a file and output the model.
+    pub fn parse(input_file: impl io::Read) -> Result<Model, FileParsingError> {
+        let parser = Parser::new(input_file);
+        parser.parse_file()
+    }
+
+    /// Instanciate this structure with the log file containing the copar records
     pub fn new(mut input_file: impl std::io::Read) -> Parser {
         let mut input_file_buffer = String::new();
         input_file.read_to_string(&mut input_file_buffer).unwrap();
@@ -301,7 +307,8 @@ impl Parser {
         Err(FileParsingError::NoSequenceStart)
     }
 
-    /// Parse the file, returning a valid copar model
+    /// Parse the copar log from the begin to the end delimiter record to create a model
+    /// Note that this function will pull every byte from the input reader until EOF is met.
     pub fn parse_file(mut self) -> Result<Model, FileParsingError> {
         let input_file_buffer = self.input_file_buffer.take().unwrap();
         let mut lines_it = input_file_buffer.lines();

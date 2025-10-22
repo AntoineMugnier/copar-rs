@@ -1,9 +1,9 @@
 use std::fs::File;
 
 use clap::{Args, Parser, Subcommand};
-use copar::{CGeneration, CSharpGeneration, Model, RustGeneration};
+use copar::{CGeneration, CSharpGeneration, RustGeneration};
 
-#[derive(Parser)]
+#[derive(clap::Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
@@ -40,14 +40,14 @@ fn generate_rust(input_log_file_path: &str, output_file_path: &str) {
     let input_file = File::open(input_log_file_path).unwrap();
     let mut output_file = File::create(output_file_path).unwrap();
 
-    let model = Model::parse(input_file).unwrap();
+    let model = copar::Parser::parse(input_file).unwrap();
     model.compute_to_rust(&mut output_file);
 }
 fn generate_csharp(input_log_file_path: &str, output_file_path: &str) {
     let input_file = File::open(input_log_file_path).unwrap();
     let mut output_file = File::create(output_file_path).unwrap();
 
-    let model = Model::parse(input_file).unwrap();
+    let model = copar::Parser::parse(input_file).unwrap();
     model.compute_to_cs(&mut output_file);
 }
 
@@ -56,7 +56,7 @@ fn generate_c(input_log_file_path: &str, output_c_file_path: &str, output_h_file
     let mut output_c_file = File::create(output_c_file_path).unwrap();
     let mut output_h_file = File::create(output_h_file_path).unwrap();
 
-    let model = Model::parse(input_file).unwrap();
+    let model = copar::Parser::parse(input_file).unwrap();
     model.compute_to_c(&mut output_c_file, &mut output_h_file);
 }
 

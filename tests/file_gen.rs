@@ -1,5 +1,5 @@
 mod test_files;
-use copar::{CGeneration, CSharpGeneration, Model, RustGeneration};
+use copar::{CGeneration, CSharpGeneration, Parser, RustGeneration};
 
 use test_files::{TEST_FILE_C_CONTENT, TEST_FILE_H_CONTENT, TEST_FILE_LOG};
 
@@ -7,7 +7,7 @@ use crate::test_files::{TEST_FILE_CS_CONTENT, TEST_FILE_RUST_CONTENT};
 
 #[test]
 fn test_c_gen() {
-    let model = Model::parse(TEST_FILE_LOG.as_bytes()).unwrap();
+    let model = Parser::parse(TEST_FILE_LOG.as_bytes()).unwrap();
     let mut test_output_file_c = Vec::new();
     let mut test_output_file_h = Vec::new();
     model.compute_to_c(&mut test_output_file_c, &mut test_output_file_h);
@@ -25,7 +25,7 @@ fn test_c_gen() {
 
 #[test]
 fn test_rust_gen() {
-    let model = Model::parse(TEST_FILE_LOG.as_bytes()).unwrap();
+    let model = Parser::parse(TEST_FILE_LOG.as_bytes()).unwrap();
     let mut test_output_file_rs = Vec::new();
     model.compute_to_rust(&mut test_output_file_rs);
 
@@ -37,7 +37,7 @@ fn test_rust_gen() {
 
 #[test]
 fn test_csharp_gen() {
-    let model = Model::parse(TEST_FILE_LOG.as_bytes()).unwrap();
+    let model = Parser::parse(TEST_FILE_LOG.as_bytes()).unwrap();
     let mut test_output_file_cs = Vec::new();
     model.compute_to_cs(&mut test_output_file_cs);
     println!(
