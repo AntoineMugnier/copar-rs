@@ -4,14 +4,14 @@ CoPar (Command Parser) allows to generate structured command lists in different 
 CoPar exists both as CLI and a library crate.
 **Supported generated languages :** Rust, C#, C
 
-## How to use it
+## How to use the library
 Use the `Model::parse()` function to parse your logs. 
 Use any `Model::compute_to_*` function to generate the command table in any available language.  
 An example is available in `tests/file_gen`.
 
 ## Typical use case
-You have a driver sending a complex series of command to a device for initializing it. Your goal is to reproduce the driver initialization. However you don't want to dive into understanding the complex drive code or maybe its source code is inaccessible.
-You can insert CoPar-style command records at key locations in the low-level access layer to log every command going out of the driver. Give those line of logs to the parser to synthetize an array of commands in the language of your choice. It's up to you to write the program that will read and execute this array of commands.
+Imagine you have a driver sending a complex series of command to a device for initializing it. Your goal is to reproduce the device initialization. However you don't want to dive into understanding the complex driver code or maybe its closed source.
+You can insert CoPar-style command records at key locations in the low-level access layer to log every command going out of the driver. Give those line of logs to the parser to synthesize an array of commands in the language of your choice. It's up to you to write the program that will read and execute this array of commands.
 
 ## CoPar language specification
 ### Important definitions
