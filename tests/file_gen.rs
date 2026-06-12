@@ -39,7 +39,7 @@ fn test_rust_gen() {
 fn test_csharp_gen() {
     let model = Parser::parse(TEST_FILE_LOG.as_bytes()).unwrap();
     let mut test_output_file_cs = Vec::new();
-    model.compute_to_cs(&mut test_output_file_cs);
+    model.compute_to_cs(&mut test_output_file_cs, None);
     println!(
         "{}",
         String::from_utf8(test_output_file_cs.clone()).unwrap()

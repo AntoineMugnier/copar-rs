@@ -12,8 +12,12 @@ mod private {
     use crate::unirecord::MemberType;
 
     pub trait Sealed {
-        fn generate_cs_file(&self, output_file: &mut impl std::io::Write);
-        fn generate_cs_namespace_open(&self, output_file: &mut impl std::io::Write);
+        fn generate_cs_file(&self, output_file: &mut impl std::io::Write, namespace: Option<&str>);
+        fn generate_cs_namespace_open(
+            &self,
+            output_file: &mut impl std::io::Write,
+            namespace: Option<&str>,
+        );
         fn generate_cs_namespace_close(&self, output_file: &mut impl std::io::Write);
         fn generate_cs_static_class_open(
             &self,
@@ -43,18 +47,18 @@ use private::Sealed;
 /// Trait allowing copar model to generate C# code
 pub trait CSharpGeneration: private::Sealed {
     /// Generate C# code from the model
-    fn compute_to_cs(&self, output_cs_file: &mut impl std::io::Write);
+    fn compute_to_cs(&self, output_cs_file: &mut impl std::io::Write, namespace: Option<&str>);
 }
 
 impl CSharpGeneration for Model {
-    fn compute_to_cs(&self, output_cs_file: &mut impl std::io::Write) {
-        self.generate_cs_file(output_cs_file);
+    fn compute_to_cs(&self, output_cs_file: &mut impl std::io::Write, namespace: Option<&str>) {
+        self.generate_cs_file(output_cs_file, namespace);
     }
 }
 
 impl private::Sealed for Model {
-    fn generate_cs_file(&self, output_file: &mut impl std::io::Write) {
-        self.generate_cs_namespace_open(output_file);
+    fn generate_cs_file(&self, output_file: &mut impl std::io::Write, namespace: Option<&str>) {
+        self.generate_cs_namespace_open(output_file, namespace);
 
         self.generate_cs_operation_id_enum(output_file);
         self.generate_cs_operation_definition(output_file);
@@ -76,11 +80,17 @@ impl private::Sealed for Model {
         self.generate_cs_namespace_close(output_file);
     }
 
-    fn generate_cs_namespace_open(&self, output_file: &mut impl std::io::Write) {
-        let namespace = self.sequence_name.as_ref().map_or_else(
-            || "GeneratedPlaydisc".to_string(),
-            |s_name| format!("Generated{}", pascal_case(s_name)),
-        );
+    fn generate_cs_namespace_open(
+        &self,
+        output_file: &mut impl std::io::Write,
+        namespace: Option<&str>,
+    ) {
+        let namespace = namespace.map(String::from).unwrap_or_else(|| {
+            self.sequence_name.as_ref().map_or_else(
+                || "GeneratedPlaydisc".to_string(),
+                |s_name| format!("Generated{}", pascal_case(s_name)),
+            )
+        });
         write!(output_file, "namespace {}\n{{\n", namespace).unwrap();
     }
 

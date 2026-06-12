@@ -14,6 +14,8 @@ struct Cli {
 struct CSharpArgs {
     input_file_path: String,
     output_file_path: String,
+    #[arg(short, long)]
+    namespace: Option<String>,
 }
 
 #[derive(Args)]
@@ -43,12 +45,12 @@ fn generate_rust(input_log_file_path: &str, output_file_path: &str) {
     let model = copar::Parser::parse(input_file).unwrap();
     model.compute_to_rust(&mut output_file);
 }
-fn generate_csharp(input_log_file_path: &str, output_file_path: &str) {
+fn generate_csharp(input_log_file_path: &str, output_file_path: &str, namespace: Option<&str>) {
     let input_file = File::open(input_log_file_path).unwrap();
     let mut output_file = File::create(output_file_path).unwrap();
 
     let model = copar::Parser::parse(input_file).unwrap();
-    model.compute_to_cs(&mut output_file);
+    model.compute_to_cs(&mut output_file, namespace);
 }
 
 fn generate_c(input_log_file_path: &str, output_c_file_path: &str, output_h_file_path: &str) {
@@ -68,6 +70,7 @@ fn main() {
             generate_csharp(
                 cs_args.input_file_path.as_str(),
                 cs_args.output_file_path.as_str(),
+                cs_args.namespace.as_deref(),
             );
         }
         GenerationCommand::GenerateC(c_args) => {
